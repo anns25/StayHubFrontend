@@ -39,7 +39,7 @@ export default function ResetPasswordCard({ token }: ResetPasswordCardProps) {
     setLoading(true);
 
     try {
-      const response = await authClient.put(`/auth/resetpassword/${token}`, {
+      const response = await authClient.patch(`/resetpassword/${token}`, {
         password,
       });
 

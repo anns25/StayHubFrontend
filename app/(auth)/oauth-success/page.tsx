@@ -1,67 +1,77 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { signIn, getSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { getSession } from 'next-auth/react';
 import { cookieUtils } from '@/lib/utils/cookies';
 import { Building2 } from 'lucide-react';
 
 export default function OAuthSuccessPage() {
-  const searchParams = useSearchParams();
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
     const handleOAuthSuccess = async () => {
       try {
-        // Get session from NextAuth
         const session = await getSession();
         
-        if (!session) {
+        if (!session?.user?.email) {
           setError('Failed to authenticate. Please try again.');
           setLoading(false);
           return;
         }
 
-        // Get OAuth data and send to backend
+        // Check if user already exists
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${API_URL}/api/auth/oauth/callback`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            provider: session.user?.provider || 'google',
-            oauthId: session.user?.id || '',
-            email: session.user?.email || '',
-            name: session.user?.name || '',
-            profileImage: session.user?.image || '',
-            role: 'customer',
-          }),
-        });
+        const checkResponse = await fetch(`${API_URL}/api/auth/check-user?email=${encodeURIComponent(session.user.email)}`);
+        const checkData = await checkResponse.json();
 
-        const data = await response.json();
+        // If user exists, log them in directly
+        if (checkData.exists) {
+          const response = await fetch(`${API_URL}/api/auth/oauth/callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: 'google',
+              oauthId: session.user.id || session.user.email,
+              email: session.user.email,
+              name: session.user.name || '',
+              profileImage: session.user.image || '',
+              role: checkData.user.role,
+            }),
+          });
 
-        if (data.success && data.token) {
-          // Store token and user in cookies
-          cookieUtils.setToken(data.token);
-          cookieUtils.setUser(data.user);
+          const data = await response.json();
 
-          // Redirect based on role
-          if (data.user.role === 'admin') {
-            window.location.href = '/admin/dashboard';
-          } else if (data.user.role === 'hotel_owner') {
-            if (data.user.isApproved) {
-              window.location.href = '/hotel-owner/dashboard';
+          if (data.success && data.token) {
+            cookieUtils.setToken(data.token);
+            cookieUtils.setUser(data.user);
+
+            // Redirect based on role
+            if (data.user.role === 'admin') {
+              window.location.href = '/admin/dashboard';
+            } else if (data.user.role === 'hotel_owner') {
+              window.location.href = data.user.isApproved 
+                ? '/hotel-owner/dashboard' 
+                : '/hotel-owner/pending-approval';
             } else {
-              window.location.href = '/hotel-owner/pending-approval';
+              window.location.href = '/';
             }
           } else {
-            window.location.href = '/';
+            setError(data.message || 'Authentication failed');
+            setLoading(false);
           }
         } else {
-          setError(data.message || 'Authentication failed');
-          setLoading(false);
+          // New user - redirect to role selection
+          const params = new URLSearchParams({
+            provider: 'google',
+            oauthId: session.user.id || session.user.email,
+            email: session.user.email,
+            name: session.user.name || '',
+            profileImage: session.user.image || '',
+          });
+          router.push(`/oauth-role-selection?${params.toString()}`);
         }
       } catch (err: any) {
         console.error('OAuth error:', err);
@@ -71,7 +81,7 @@ export default function OAuthSuccessPage() {
     };
 
     handleOAuthSuccess();
-  }, []);
+  }, [router]);
 
   if (loading) {
     return (

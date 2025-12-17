@@ -20,7 +20,7 @@ export default function ForgotPasswordCard() {
     setLoading(true);
 
     try {
-      const response = await authClient.post('/auth/forgotpassword', { email });
+      const response = await authClient.post('/forgotpassword', { email });
       
       if (response.data.success) {
         setSuccess(true);

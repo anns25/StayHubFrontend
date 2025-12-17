@@ -21,7 +21,7 @@ export interface AuthResponse {
     id: string;
     name: string;
     email: string;
-    role: string;
+    role: 'customer' | 'hotel_owner' | 'admin';
     isApproved?: boolean;
     isVerified?: boolean;
   };

@@ -1,5 +1,5 @@
 'use client';
-import ResetPasswordCard from '../../../../components/auth/ResetPasswordCard';
+import ResetPasswordCard from '@/components/auth/ResetPasswordCard';
 
 
 export default function ResetPasswordPage({ params }: { params: { token: string } }) {
