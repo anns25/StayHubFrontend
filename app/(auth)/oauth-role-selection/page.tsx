@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Building2, User, Hotel } from 'lucide-react';
 import Button from '@/components/ui/Button';
 import { cookieUtils } from '@/lib/utils/cookies';
+import authClient from '@/lib/api/authClient'
 
 // Extract the component that uses useSearchParams
 function OAuthRoleSelectionContent() {
@@ -31,23 +32,16 @@ function OAuthRoleSelectionContent() {
     setLoading(true);
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const response = await fetch(`${API_URL}/api/auth/oauth/callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          provider,
-          oauthId,
-          email,
-          name,
-          profileImage,
-          role: selectedRole,
-        }),
+      const response = await authClient.post('/oauth/callback', {
+        provider,
+        oauthId,
+        email,
+        name,
+        profileImage,
+        role: selectedRole,
       });
 
-      const data = await response.json();
+      const data = await response.data;
 
       if (data.success && data.token) {
         // Store token and user in cookies

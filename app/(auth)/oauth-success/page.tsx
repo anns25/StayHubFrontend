@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getSession } from 'next-auth/react';
 import { cookieUtils } from '@/lib/utils/cookies';
 import { Building2 } from 'lucide-react';
+import authClient from '@/lib/api/authClient';
 
 export default function OAuthSuccessPage() {
   const router = useRouter();
@@ -24,25 +25,21 @@ export default function OAuthSuccessPage() {
 
         // Check if user already exists
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const checkResponse = await fetch(`${API_URL}/api/auth/check-user?email=${encodeURIComponent(session.user.email)}`);
-        const checkData = await checkResponse.json();
+        const checkResponse = await authClient.get(`/check-user?email=${encodeURIComponent(session.user.email)}`);
+        const checkData = checkResponse.data;
 
         // If user exists, log them in directly
         if (checkData.exists) {
-          const response = await fetch(`${API_URL}/api/auth/oauth/callback`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: 'google',
-              oauthId: session.user.id || session.user.email,
-              email: session.user.email,
-              name: session.user.name || '',
-              profileImage: session.user.image || '',
-              role: checkData.user.role,
-            }),
+          const response = await authClient.post('/oauth/callback', {
+            provider: 'google',
+            oauthId: session.user.id || session.user.email,
+            email: session.user.email,
+            name: session.user.name || '',
+            profileImage: session.user.image || '',
+            role: checkData.user.role,
           });
 
-          const data = await response.json();
+          const data = response.data;
 
           if (data.success && data.token) {
             cookieUtils.setToken(data.token);
