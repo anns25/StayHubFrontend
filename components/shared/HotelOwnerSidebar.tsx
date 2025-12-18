@@ -77,7 +77,7 @@ export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwn
 
       {/* Sidebar */}
       <aside
-        className="w-64 bg-emerald-dark min-h-screen fixed left-0 top-16 bottom-0 overflow-y-auto z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 border-r border-emerald"
+        className="w-64 bg-emerald-dark min-h-screen fixed left-0 top-20 bottom-0 overflow-y-auto z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 border-r border-emerald"
         id="hotel-owner-sidebar"
       >
         <div className="p-4 sm:p-6">

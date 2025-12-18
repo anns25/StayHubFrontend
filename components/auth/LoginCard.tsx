@@ -1,6 +1,5 @@
 'use client';
 
-import { Building2 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Checkbox from '@/components/ui/Checkbox';
@@ -10,18 +9,19 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { login, clearError } from '@/store/slices/authSlice';
+import Logo from '../ui/Logo';
 
 export default function LoginCard() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
-  
+
   // Local state for validation errors
   const [validationError, setValidationError] = useState('');
 
   const dispatch = useAppDispatch();
   const router = useRouter();
-  
+
   // Redux state for API errors and loading
   const { loading, error: apiError } = useAppSelector((state) => state.auth);
 
@@ -34,7 +34,7 @@ export default function LoginCard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setValidationError('');
     dispatch(clearError());
@@ -56,7 +56,7 @@ export default function LoginCard() {
     // Handle success
     if (login.fulfilled.match(result)) {
       const user = result.payload.user;
-      
+
       if (user.role === 'admin') {
         router.push('/admin/dashboard');
       } else if (user.role === 'hotel_owner') {
@@ -84,12 +84,12 @@ export default function LoginCard() {
 
   return (
     <div className="bg-ivory-light rounded-2xl shadow-lg p-8 w-full max-w-md">
-      {/* Header */}
+      {/* Header with Logo */}
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-r from-emerald-dark to-emerald rounded-xl flex items-center justify-center mx-auto mb-4">
-          <Building2 className="w-8 h-8 text-white" />
+        <div className="flex justify-center mb-4">
+          <Logo size="md" showText={true} layout="vertical" />
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Welcome Back</h1>
+        <h1 className="text-lg font-bold text-gray-900 mb-2">Welcome Back</h1>
         <p className="text-sm text-gray-600">Sign in to your account</p>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Bell, Plus, Menu, X } from 'lucide-react';
+import Logo from '../ui/Logo';
 
 interface HotelOwnerHeaderProps {
   onAddHotel?: () => void;
@@ -26,7 +27,7 @@ export default function HotelOwnerHeader({ onAddHotel }: HotelOwnerHeaderProps) 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   return (
-    <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50 h-20">
       <div className="px-4 sm:px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo and Mobile Menu */}
@@ -38,12 +39,7 @@ export default function HotelOwnerHeader({ onAddHotel }: HotelOwnerHeaderProps) 
             >
               {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-emerald rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl font-bold">🏨</span>
-              </div>
-              <span className="text-lg sm:text-xl font-bold text-charcoal">HotelPro</span>
-            </div>
+            <Logo size="sm" showText={true} href="/admin/dashboard" />
           </div>
 
           {/* Right Side Actions */}

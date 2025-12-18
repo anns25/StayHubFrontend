@@ -109,3 +109,36 @@ export const forgotPassword = async (email: string): Promise<any> => {
     );
   }
 };
+
+// Admin: Get pending approvals
+export const getPendingApprovals = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/admin/pending-approvals');
+    return response.data;
+  } catch (error: any) {
+    console.error('Get pending approvals error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: error.config?.url,
+    });
+    throw new Error(
+      error.response?.data?.message || 
+      error.response?.data?.error ||
+      `Failed to fetch pending approvals: ${error.response?.status || 'Network error'}`
+    );
+  }
+};
+
+// Admin: Approve user
+export const approveUser = async (userId: string): Promise<any> => {
+  try {
+    const response = await apiClient.patch(`/admin/users/${userId}/approve`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to approve user'
+    );
+  }
+};

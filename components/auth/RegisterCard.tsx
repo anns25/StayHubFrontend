@@ -1,6 +1,5 @@
 'use client';
 
-import { Building2 } from 'lucide-react';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import RoleSelector from '@/components/ui/RoleSelector';
@@ -10,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { register as registerAction, clearError } from '@/store/slices/authSlice';
+import Logo from '../ui/Logo';
 
 export default function RegisterCard() {
   const [name, setName] = useState('');
@@ -18,13 +18,13 @@ export default function RegisterCard() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [role, setRole] = useState('customer');
   const [agreeToTerms, setAgreeToTerms] = useState(false);
-  
+
   // Local state for validation errors
   const [validationError, setValidationError] = useState('');
 
   const dispatch = useAppDispatch();
   const router = useRouter();
-  
+
   // Redux state for API errors and loading
   const { loading, error: apiError } = useAppSelector((state) => state.auth);
 
@@ -37,7 +37,7 @@ export default function RegisterCard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Clear previous errors
     setValidationError('');
     dispatch(clearError());
@@ -69,7 +69,7 @@ export default function RegisterCard() {
     // Handle success
     if (registerAction.fulfilled.match(result)) {
       const user = result.payload.user;
-      
+
       if (user.role === 'hotel_owner') {
         router.push(user.isApproved ? '/hotel-owner/dashboard' : '/hotel-owner/pending-approval');
       } else {
@@ -95,12 +95,12 @@ export default function RegisterCard() {
 
   return (
     <div className="bg-ivory-light rounded-2xl shadow-lg p-8 w-full max-w-md">
-      {/* Header */}
+      {/* Header with Logo*/}
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-r from-emerald-dark to-emerald rounded-xl flex items-center justify-center mx-auto mb-4">
-          <Building2 className="w-8 h-8 text-white" />
+        <div className="flex justify-center mb-4">
+          <Logo size="md" showText={true} layout="vertical"/>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Create Account</h1>
+        <h1 className="text-lg font-bold text-gray-900 mb-2">Create Account</h1>
         <p className="text-sm text-gray-600">Sign up to get started</p>
       </div>
 

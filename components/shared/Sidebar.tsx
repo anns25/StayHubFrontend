@@ -76,7 +76,7 @@ export default function Sidebar({ activeItem = 'Dashboard' }: SidebarProps) {
       ></div>
 
       {/* Sidebar */}
-      <aside className="w-64 bg-emerald-dark min-h-screen fixed left-0 top-16 bottom-0 overflow-y-auto z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" id="sidebar">
+      <aside className="w-64 bg-emerald-dark min-h-screen fixed left-0 top-20 bottom-0 overflow-y-auto z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" id="sidebar">
         <div className="p-4 sm:p-6">
           <div className="flex items-center justify-between mb-6 sm:mb-8 lg:block">
             <div>

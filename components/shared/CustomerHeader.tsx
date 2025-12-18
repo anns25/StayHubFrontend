@@ -1,47 +1,113 @@
 'use client';
 
-import { Heart, Menu, X } from 'lucide-react';
-import { useState } from 'react';
+import { Heart, Menu, X, User, LogOut, Calendar, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import Logo from '@/components/ui/Logo';
+import { useAppSelector } from '@/store/hooks';
+import { logout } from '@/store/slices/authSlice';
+import { useAppDispatch } from '@/store/hooks';
+import { useRouter } from 'next/navigation';
 
 export default function CustomerHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { user } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push('/login');
+  };
+
+
+  // Get user initials safely
+
+  const userInitials = mounted && user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+  const userName = mounted && user?.name ? user.name : 'User';
 
   return (
-    <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50 h-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-emerald rounded-lg flex items-center justify-center">
-              <span className="text-white text-lg font-bold">🏨</span>
-            </div>
-            <span className="text-xl font-bold text-charcoal">StayFinder</span>
+          <div className="flex items-center space-x-4">
+            <Logo size="sm" showText={true} href="/customer/dashboard" />
           </div>
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="/" className="text-charcoal hover:text-emerald font-medium">
-              Home
+            <a href="/customer/dashboard" className="text-charcoal hover:text-emerald font-medium transition-colors">
+              Dashboard
             </a>
-            <a href="/deals" className="text-charcoal hover:text-emerald font-medium">
-              Deals
+            <a href="/customer/search" className="text-charcoal hover:text-emerald font-medium transition-colors">
+              Search Hotels
             </a>
-            <a href="/bookings" className="text-charcoal hover:text-emerald font-medium">
+            <a href="/customer/bookings" className="text-charcoal hover:text-emerald font-medium transition-colors">
               My Bookings
+            </a>
+            <a href="/customer/favorites" className="text-charcoal hover:text-emerald font-medium transition-colors">
+              Favorites
             </a>
           </nav>
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
-            {/* Favorites Icon */}
-            <button className="p-2 text-charcoal hover:text-emerald transition-colors">
-              <Heart className="w-5 h-5" />
-            </button>
+            {/* Search Icon */}
+            <a href="/customer/search" className="p-2 text-charcoal hover:text-emerald transition-colors">
+              <Search className="w-5 h-5" />
+            </a>
 
-            {/* Sign In Button */}
-            <button className="hidden sm:block bg-emerald hover:bg-emerald-dark text-white px-6 py-2 rounded-lg font-medium transition-colors">
-              Sign In
-            </button>
+            {/* Favorites Icon */}
+            <a href="/customer/favorites" className="p-2 text-charcoal hover:text-emerald transition-colors">
+              <Heart className="w-5 h-5" />
+            </a>
+
+            {/* User Profile */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-8 h-8 bg-gradient-to-r from-emerald-dark to-emerald rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-medium">
+                    {userInitials}
+                  </span>
+                </div>
+                <div className="hidden md:block text-left">
+                  <div className="text-sm font-medium text-gray-900" suppressHydrationWarning>
+                    {userName}
+                  </div>
+                  <div className="text-xs text-gray-500">Customer</div>
+                </div>
+              </button>
+
+              {/* Dropdown Menu */}
+              {showUserMenu && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <a href="/customer/profile" className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <User className="w-4 h-4" />
+                    <span>Profile</span>
+                  </a>
+                  <a href="/customer/bookings" className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <Calendar className="w-4 h-4" />
+                    <span>My Bookings</span>
+                  </a>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Mobile Menu Button */}
             <button
@@ -58,17 +124,23 @@ export default function CustomerHeader() {
         {mobileMenuOpen && (
           <div className="md:hidden py-4 border-t border-gray-200">
             <nav className="flex flex-col space-y-4">
-              <a href="/" className="text-gray-700 hover:text-stayfinder-blue font-medium">
-                Home
+              <a href="/customer/dashboard" className="text-gray-700 hover:text-emerald font-medium">
+                Dashboard
               </a>
-              <a href="/deals" className="text-gray-700 hover:text-stayfinder-blue font-medium">
-                Deals
+              <a href="/customer/search" className="text-gray-700 hover:text-emerald font-medium">
+                Search Hotels
               </a>
-              <a href="/bookings" className="text-gray-700 hover:text-stayfinder-blue font-medium">
+              <a href="/customer/bookings" className="text-gray-700 hover:text-emerald font-medium">
                 My Bookings
               </a>
-              <button className="bg-stayfinder-blue hover:bg-stayfinder-blue-dark text-white px-6 py-2 rounded-lg font-medium transition-colors text-left">
-                Sign In
+              <a href="/customer/favorites" className="text-gray-700 hover:text-emerald font-medium">
+                Favorites
+              </a>
+              <button
+                onClick={handleLogout}
+                className="bg-emerald hover:bg-emerald-dark text-white px-6 py-2 rounded-lg font-medium transition-colors text-left"
+              >
+                Logout
               </button>
             </nav>
           </div>
@@ -77,4 +149,3 @@ export default function CustomerHeader() {
     </header>
   );
 }
-

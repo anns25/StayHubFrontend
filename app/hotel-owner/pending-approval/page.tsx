@@ -5,6 +5,7 @@ import { Clock, Mail, CheckCircle, AlertCircle, LogOut } from 'lucide-react';
 import { logout, getCurrentUser } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import { cookieUtils } from '@/lib/utils/cookies';
+import Logo from '@/components/ui/Logo';
 
 export default function PendingApprovalPage() {
   const [user, setUser] = useState<any>(null);
@@ -24,7 +25,7 @@ export default function PendingApprovalPage() {
         }
 
         const data = await getCurrentUser();
-        
+
         // If user is approved, redirect to dashboard
         if (data.user?.isApproved) {
           router.push('/hotel-owner/dashboard');
@@ -67,12 +68,7 @@ export default function PendingApprovalPage() {
       <header className="bg-ivory-light border-b border-gray-200">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-emerald rounded-lg flex items-center justify-center">
-                <span className="text-white text-xl font-bold">🏨</span>
-              </div>
-              <span className="text-lg sm:text-xl font-bold text-charcoal">HotelPro</span>
-            </div>
+            <Logo size="sm" showText={true} href="/"/>
             <button
               onClick={handleLogout}
               className="flex items-center space-x-2 text-charcoal-light hover:text-charcoal px-3 py-2 rounded-lg hover:bg-ivory-dark transition-colors"
@@ -107,8 +103,8 @@ export default function PendingApprovalPage() {
               <div>
                 <h2 className="font-semibold text-charcoal mb-2">What happens next?</h2>
                 <p className="text-sm text-charcoal-light leading-relaxed">
-                  Our admin team will review your registration and verify your hotel owner credentials. 
-                  This process typically takes 24-48 hours. Once approved, you'll receive an email notification 
+                  Our admin team will review your registration and verify your hotel owner credentials.
+                  This process typically takes 24-48 hours. Once approved, you'll receive an email notification
                   and can access your dashboard to start managing your hotels.
                 </p>
               </div>
@@ -118,7 +114,7 @@ export default function PendingApprovalPage() {
           {/* Steps */}
           <div className="space-y-4 mb-8">
             <h3 className="font-semibold text-charcoal mb-4">Approval Process:</h3>
-            
+
             <div className="space-y-3">
               <div className="flex items-start space-x-4">
                 <div className="w-8 h-8 bg-emerald rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -181,7 +177,7 @@ export default function PendingApprovalPage() {
               <Mail className="w-5 h-5 text-emerald flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-charcoal-light">
-                  <span className="font-medium text-charcoal">Questions?</span> If you have any questions 
+                  <span className="font-medium text-charcoal">Questions?</span> If you have any questions
                   about your registration or need assistance, please contact our support team at{' '}
                   <a href="mailto:support@hotelpro.com" className="text-emerald hover:text-emerald-dark font-medium">
                     support@hotelpro.com

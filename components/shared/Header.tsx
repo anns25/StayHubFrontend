@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Menu, X } from 'lucide-react';
+import Logo from '../ui/Logo';
 
 interface NavItem {
   label: string;
@@ -46,7 +47,7 @@ export default function Header({ user = { name: 'John Admin', role: 'Administrat
   // ];
 
   return (
-    <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50">
+    <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50 h-20">
       <div className="px-6 py-4">
         <div className="flex items-center justify-between">
           {/* Logo and Mobile Menu */}
@@ -58,12 +59,7 @@ export default function Header({ user = { name: 'John Admin', role: 'Administrat
             >
               {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-emerald rounded-lg flex items-center justify-center">
-              <span className="text-white text-xl font-bold">🏨</span>
-            </div>
-              <span className="text-lg sm:text-xl font-bold text-charcoal">AI Stay Hub</span>
-            </div>
+            <Logo size="sm" showText={true} href="/admin/dashboard" />
           </div>
 
           {/* Navigation Tabs */}
