@@ -142,3 +142,181 @@ export const approveUser = async (userId: string): Promise<any> => {
     );
   }
 };
+
+// Admin: Get all users
+export const getAllUsers = async (params?: {
+  role?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.get('/admin/users', { params });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch users'
+    );
+  }
+};
+
+// Admin: Get user statistics
+export const getUserStatistics = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/admin/users/statistics');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch user statistics'
+    );
+  }
+};
+
+// Hotel Owner: Get my hotels
+export const getMyHotels = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/hotels/my-hotels');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch hotels'
+    );
+  }
+};
+
+// Hotel Owner: Get single hotel
+export const getHotel = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/hotels/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch hotel'
+    );
+  }
+};
+
+// Hotel Owner: Create hotel
+export const createHotel = async (formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.post('/hotels', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to create hotel'
+    );
+  }
+};
+
+// Hotel Owner: Update hotel
+export const updateHotel = async (hotelId: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.patch(`/hotels/${hotelId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to update hotel'
+    );
+  }
+};
+
+// Hotel Owner: Delete hotel
+export const deleteHotel = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.delete(`/hotels/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to delete hotel'
+    );
+  }
+};
+
+// Hotel Owner: Get rooms by hotel
+export const getRoomsByHotel = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/rooms/hotel/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch rooms'
+    );
+  }
+};
+
+// Hotel Owner: Get single room
+export const getRoom = async (roomId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/rooms/${roomId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch room'
+    );
+  }
+};
+
+// Hotel Owner: Create room
+export const createRoom = async (formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.post('/rooms', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to create room'
+    );
+  }
+};
+
+// Hotel Owner: Update room
+export const updateRoom = async (roomId: string, formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.patch(`/rooms/${roomId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to update room'
+    );
+  }
+};
+
+// Hotel Owner: Delete room
+export const deleteRoom = async (roomId: string): Promise<any> => {
+  try {
+    const response = await apiClient.delete(`/rooms/${roomId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to delete room'
+    );
+  }
+};
