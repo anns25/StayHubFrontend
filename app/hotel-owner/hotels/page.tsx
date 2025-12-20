@@ -121,13 +121,13 @@ export default function HotelsPage() {
             <Building2 className="w-16 h-16 text-charcoal-light mx-auto mb-4 opacity-50" />
             <p className="text-charcoal-light text-lg mb-2">No hotels yet</p>
             <p className="text-charcoal-light text-sm mb-4">Get started by adding your first hotel</p>
-            <Button
+            <button
               onClick={handleOpenCreate}
-              variant="primary"
+              className="inline-flex items-center justify-center px-6 py-3 bg-emerald text-white rounded-lg hover:bg-emerald-dark shadow-md hover:shadow-lg transition-all duration-200 font-medium text-sm group"
             >
-              <Plus className="w-4 h-4 mr-2" />
-              Add Your First Hotel
-            </Button>
+              <Plus className="w-4 h-4 mr-2 group-hover:rotate-90 transition-transform duration-200" />
+              <span>Add Your First Hotel</span>
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
