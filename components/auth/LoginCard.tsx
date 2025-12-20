@@ -19,11 +19,17 @@ export default function LoginCard() {
   // Local state for validation errors
   const [validationError, setValidationError] = useState('');
 
+  // Local loading state to persist during navigation
+  const [isNavigating, setIsNavigating] = useState(false);
+
   const dispatch = useAppDispatch();
   const router = useRouter();
 
   // Redux state for API errors and loading
   const { loading, error: apiError } = useAppSelector((state) => state.auth);
+
+  // Combines loading state (API loading OR navigating)
+  const isLoading = loading || isNavigating;
 
   // Clear errors when component unmounts
   useEffect(() => {
@@ -57,6 +63,10 @@ export default function LoginCard() {
     if (login.fulfilled.match(result)) {
       const user = result.payload.user;
 
+      // Set navigating state to keep button in loading state
+      setIsNavigating(true);
+
+      //Navigate based on user role
       if (user.role === 'admin') {
         router.push('/admin/dashboard');
       } else if (user.role === 'hotel_owner') {
@@ -65,7 +75,6 @@ export default function LoginCard() {
         router.push('/');
       }
     }
-    // Errors are automatically handled by Redux
   };
 
   const handleOAuthLogin = async () => {
@@ -166,8 +175,8 @@ export default function LoginCard() {
         </div>
 
         {/* Sign In Button */}
-        <Button type="submit" variant="primary" fullWidth disabled={loading}>
-          {loading ? 'Signing In...' : 'Sign In'}
+        <Button type="submit" variant="primary" fullWidth disabled={isLoading}>
+          {isLoading ? 'Signing In...' : 'Sign In'}
         </Button>
       </form>
 

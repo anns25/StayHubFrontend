@@ -181,10 +181,10 @@ export default function HotelsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-2 w-full pt-4">
                     <button
                       onClick={() => handleOpenEdit(hotel._id)}
-                      className="flex items-center justify-center px-4 py-2 bg-emerald/10 text-emerald border border-emerald/20 rounded-lg hover:bg-emerald/20 hover:border-emerald/40 transition-all duration-200 group"
+                      className="flex items-center justify-center px-4 py-2 bg-emerald/10 text-emerald border border-emerald/20 rounded-lg hover:bg-emerald/20 hover:border-emerald/40 transition-all duration-200 group flex-1"
                       title="Edit hotel"
                     >
                       <Edit className="w-4 h-4 mr-1.5 group-hover:scale-110 transition-transform" />
@@ -193,7 +193,7 @@ export default function HotelsPage() {
                     <button
                       onClick={() => handleDelete(hotel._id)}
                       disabled={deleting === hotel._id}
-                      className="flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group"
+                      className="flex items-center justify-center px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 hover:border-red-300 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed group flex-1"
                       title="Delete hotel"
                     >
                       {deleting === hotel._id ? (

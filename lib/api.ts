@@ -320,3 +320,42 @@ export const deleteRoom = async (roomId: string): Promise<any> => {
     );
   }
 };
+
+// Admin: Approve hotel
+export const approveHotel = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.patch(`/admin/hotels/${hotelId}/approve`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to approve hotel'
+    );
+  }
+};
+
+// Admin: Get pending hotels
+export const getPendingHotels = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/admin/pending-approvals');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch pending hotels'
+    );
+  }
+};
+
+// Admin: Reject hotel (optional - you might want to add this)
+export const rejectHotel = async (hotelId: string, reason?: string): Promise<any> => {
+  try {
+    const response = await apiClient.patch(`/admin/hotels/${hotelId}/reject`, { reason });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to reject hotel'
+    );
+  }
+};
