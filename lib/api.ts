@@ -24,6 +24,7 @@ export interface AuthResponse {
     role: 'customer' | 'hotel_owner' | 'admin';
     isApproved?: boolean;
     isVerified?: boolean;
+    profileImage?: string;
   };
   message?: string;
 }
@@ -356,6 +357,74 @@ export const rejectHotel = async (hotelId: string, reason?: string): Promise<any
     throw new Error(
       error.response?.data?.message || 
       'Failed to reject hotel'
+    );
+  }
+};
+
+// Update user profile
+export const updateProfile = async (formData: FormData): Promise<any> => {
+  try {
+    const response = await apiClient.patch('/auth/profile', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to update profile'
+    );
+  }
+};
+
+// Customer: Get all hotels (public)
+export const getHotels = async (params?: {
+  search?: string;
+  category?: string;
+  city?: string;
+  minPrice?: number;
+  maxPrice?: number;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.get('/hotels', { params });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch hotels'
+    );
+  }
+};
+
+// Customer: Get single hotel (public)
+export const getHotelById = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/hotels/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch hotel'
+    );
+  }
+};
+
+// Customer: Search hotels
+export const searchHotels = async (params?: {
+  category?: string;
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+  radius?: number;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.get('/hotels/search', { params });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to search hotels'
     );
   }
 };

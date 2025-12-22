@@ -70,6 +70,10 @@ const authSlice = createSlice({
       cookieUtils.setToken(action.payload.token);
       cookieUtils.setUser(action.payload.user);
     },
+    setUser: (state, action: PayloadAction<User>) => {
+      state.user = action.payload;
+      cookieUtils.setUser(action.payload);
+    },
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -126,5 +130,5 @@ const authSlice = createSlice({
   },
 });
 
-export const { setCredentials, logout, clearError } = authSlice.actions;
+export const { setCredentials, setUser, logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Search, Bell, ChevronDown, Menu, X } from 'lucide-react';
 import Logo from '../ui/Logo';
+import { useAppSelector } from '@/store/hooks';
+import Link from 'next/link';
 
 interface NavItem {
   label: string;
@@ -18,9 +20,15 @@ interface HeaderProps {
   };
 }
 
-export default function Header({ user = { name: 'John Admin', role: 'Administrator' } }: HeaderProps) {
+export default function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const { user } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const sidebar = document.getElementById('sidebar');
@@ -46,6 +54,11 @@ export default function Header({ user = { name: 'John Admin', role: 'Administrat
   //   { label: 'Authentication', href: '/login' },
   // ];
 
+  const userInitials = mounted && user?.name ? user.name.charAt(0).toUpperCase() : 'A';
+  const userName = mounted && user?.name ? user.name : 'Admin';
+  const userRole = mounted && user?.role ? user.role === 'admin' ? 'Administrator' : user.role : 'Administrator';
+  const userProfileImage = mounted && user?.profileImage ? user.profileImage : null;
+
   return (
     <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50 h-20">
       <div className="px-6 py-4">
@@ -61,23 +74,6 @@ export default function Header({ user = { name: 'John Admin', role: 'Administrat
             </button>
             <Logo size="sm" showText={true} href="/admin/dashboard" />
           </div>
-
-          {/* Navigation Tabs */}
-          {/* <nav className="hidden lg:flex items-center space-x-1">
-            {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className={`px-3 xl:px-4 py-2 rounded-lg text-xs xl:text-sm font-medium transition-colors ${
-                  item.active
-                    ? 'bg-emerald text-white'
-                    : 'text-charcoal-light hover:text-charcoal hover:bg-ivory-dark'
-                }`}
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav> */}
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
@@ -103,28 +99,58 @@ export default function Header({ user = { name: 'John Admin', role: 'Administrat
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100"
               >
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <span className="text-gray-600 text-sm font-medium">JA</span>
-                </div>
+                {userProfileImage ? (
+                  <img
+                    src={userProfileImage}
+                    alt={userName}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-emerald"
+                    suppressHydrationWarning
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gradient-to-r from-emerald to-emerald-dark rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium" suppressHydrationWarning>
+                      {userInitials}
+                    </span>
+                  </div>
+                )}
                 <div className="hidden md:block text-left">
-                  <div className="text-sm font-medium text-gray-900">{user.name}</div>
-                  <div className="text-xs text-gray-500">{user.role}</div>
+                  <div className="text-sm font-medium text-gray-900" suppressHydrationWarning>
+                    {userName}
+                  </div>
+                  <div className="text-xs text-gray-500" suppressHydrationWarning>
+                    {userRole}
+                  </div>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
 
               {/* Dropdown Menu */}
               {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1">
-                  <a href="/profile" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                  <Link
+                    href="/admin/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
                     Profile
-                  </a>
-                  <a href="/settings" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  </Link>
+                  <Link
+                    href="/admin/settings"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
                     Settings
-                  </a>
-                  <a href="/logout" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      // Logout will be handled by the logout function
+                    }}
+                  >
                     Logout
-                  </a>
+                  </Link>
                 </div>
               )}
             </div>

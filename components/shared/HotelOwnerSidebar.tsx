@@ -39,7 +39,7 @@ export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwn
   const userInitials = mounted && user?.name ? user.name.charAt(0).toUpperCase() : 'H';
   const userName = mounted && user?.name ? user.name : 'Hotel Owner';
   const userEmail = mounted && user?.email ? user.email : '';
-
+  const userProfileImage = mounted && user?.profileImage ? user.profileImage : null;
   const menuItems: MenuItem[] = [
     {
       label: 'Dashboard',
@@ -109,26 +109,24 @@ export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwn
         id="hotel-owner-sidebar"
       >
         <div className="flex flex-col h-full p-4 sm:p-6">
-          {/* Mobile Close Button */}
-          {/* <div className="flex items-center justify-between mb-6 sm:mb-8 lg:hidden flex-shrink-0">
-            <h2 className="text-base sm:text-lg font-semibold text-white">Menu</h2>
-            <button
-              onClick={closeSidebar}
-              className="p-2 text-ivory hover:text-white"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div> */}
 
           {/* User Profile Section */}
           <div className="mb-6 pb-6 border-b border-emerald/20 flex-shrink-0">
             <div className="flex items-center space-x-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-r from-emerald to-emerald-dark rounded-full flex items-center justify-center flex-shrink-0">
-                <span className="text-white text-lg font-semibold" suppressHydrationWarning>
-                  {userInitials}
-                </span>
-              </div>
+              {userProfileImage ? (
+                <img
+                  src={userProfileImage}
+                  alt={userName}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-emerald flex-shrink-0"
+                  suppressHydrationWarning
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald to-emerald-dark rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-lg font-semibold" suppressHydrationWarning>
+                    {userInitials}
+                  </span>
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-white truncate" suppressHydrationWarning>
                   {userName}
@@ -148,11 +146,10 @@ export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwn
                 key={item.href}
                 href={item.href}
                 onClick={closeSidebar}
-                className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${
-                  item.active
+                className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${item.active
                     ? 'bg-emerald text-white font-medium'
                     : 'text-ivory hover:bg-emerald/20'
-                }`}
+                  }`}
               >
                 {item.icon}
                 <span className="text-xs sm:text-sm">{item.label}</span>
@@ -173,11 +170,10 @@ export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwn
                     key={item.href}
                     href={item.href}
                     onClick={closeSidebar}
-                    className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${
-                      item.active
+                    className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${item.active
                         ? 'bg-emerald text-white font-medium'
                         : 'text-ivory hover:bg-emerald/20'
-                    }`}
+                      }`}
                   >
                     {item.icon}
                     <span className="text-xs sm:text-sm">{item.label}</span>

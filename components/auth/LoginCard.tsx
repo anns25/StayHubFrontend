@@ -72,7 +72,7 @@ export default function LoginCard() {
       } else if (user.role === 'hotel_owner') {
         router.push(user.isApproved ? '/hotel-owner/dashboard' : '/hotel-owner/pending-approval');
       } else {
-        router.push('/');
+        router.push('/customer/dashboard');
       }
     }
   };

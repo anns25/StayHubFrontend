@@ -1,61 +1,173 @@
 'use client';
 
 import CustomerHeader from '@/components/shared/CustomerHeader';
-import SearchWidget from '@/components/ui/SearchWidget';
 import CategoryFilters from '@/components/ui/CategoryFilters';
-import FeaturedHotels from '@/components/ui/FeaturedHotels';
+import HotelCard from '@/components/ui/HotelCard';
+import { searchHotels, getHotels } from '@/lib/api';
+import { useEffect, useState } from 'react';
+import CustomerLayout from '@/components/shared/CustomerLayout';
+import { useSearchParams } from 'next/navigation';
+import { MapPin, Search as SearchIcon, Users } from 'lucide-react';
+import Input from '@/components/ui/Input';
 
-export default function Home() {
-  const featuredHotels = [
-    {
-      id: '1',
-      name: 'Grand Plaza Hotel',
-      location: 'Downtown, New York',
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop',
-      badge: { text: 'Featured', color: 'blue' as const },
-    },
-    {
-      id: '2',
-      name: 'Seaside Resort',
-      location: 'Miami Beach, Florida',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1627448449276-8c139d0790a6?q=80&w=1674&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D?w=800&h=600&fit=crop',
-      badge: { text: 'Best Value', color: 'green' as const },
-    },
-    {
-      id: '3',
-      name: 'Mountain Lodge',
-      location: 'Aspen, Colorado',
-      rating: 4.7,
-      image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800&h=600&fit=crop',
-    },
-    {
-      id: '4',
-      name: 'Oceanview Resort',
-      location: 'San Diego, California',
-      rating: 4.6,
-      image: 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?w=800&h=600&fit=crop',
-      badge: { text: 'Featured', color: 'blue' as const },
-    },
-    {
-      id: '5',
-      name: 'City Center Hotel',
-      location: 'Chicago, Illinois',
-      rating: 4.5,
-      image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800&h=600&fit=crop',
-    },
-  ];
+interface Hotel {
+  _id: string;
+  name: string;
+  location: {
+    city: string;
+    state: string;
+    country: string;
+    address: string;
+  };
+  images: Array<{
+    url: string;
+    publicId: string;
+  }>;
+  category: string;
+  rating: {
+    average: number;
+    count: number;
+  };
+}
+
+export default function SearchPage() {
+  const searchParams = useSearchParams();
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  
+  // All search fields directly controlled in page (like admin users page)
+  const [searchLocation, setSearchLocation] = useState<string>('');
+  const [checkIn, setCheckIn] = useState<string>('');
+  const [checkOut, setCheckOut] = useState<string>('');
+  const [guests, setGuests] = useState<string>('');
+  const [showGuestsDropdown, setShowGuestsDropdown] = useState(false);
+
+  const guestOptions = ['1 Guest', '2 Guests', '3 Guests', '4 Guests', '5+ Guests'];
+
+  // Get today's date in YYYY-MM-DD format for min date
+  const today = new Date().toISOString().split('T')[0];
+  
+  // Get tomorrow's date for default check-in
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  
+  // Get day after tomorrow for default check-out
+  const dayAfterTomorrow = new Date();
+  dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+  const dayAfterTomorrowStr = dayAfterTomorrow.toISOString().split('T')[0];
+
+  // Initialize from URL params on mount
+  useEffect(() => {
+    const locationParam = searchParams.get('location');
+    const checkInParam = searchParams.get('checkIn');
+    const checkOutParam = searchParams.get('checkOut');
+    const guestsParam = searchParams.get('guests');
+    
+    if (locationParam) setSearchLocation(locationParam);
+    if (checkInParam) setCheckIn(checkInParam);
+    if (checkOutParam) setCheckOut(checkOutParam);
+    if (guestsParam) setGuests(guestsParam);
+  }, []); // Only run on mount
+
+  // Debounced search - triggers 500ms after user stops typing (exactly like admin users page)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchHotels();
+    }, 500); // 500ms debounce delay
+
+    return () => clearTimeout(timer);
+  }, [selectedCategory, searchLocation]);
+
+  const fetchHotels = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Use search endpoint if location is provided, otherwise use regular getHotels
+      if (searchLocation.trim()) {
+        const params: any = {
+          city: searchLocation.trim(),
+        };
+        if (selectedCategory) {
+          params.category = selectedCategory;
+        }
+        const response = await searchHotels(params);
+        setHotels(response.data || []);
+      } else {
+        const params: any = {};
+        if (selectedCategory) {
+          params.category = selectedCategory;
+        }
+        const response = await getHotels(params);
+        setHotels(response.data || []);
+      }
+    } catch (error: any) {
+      console.error('Error fetching hotels:', error);
+      setError(error.message || 'Failed to fetch hotels');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Transform backend hotel data to frontend format
+  const transformHotel = (hotel: Hotel) => {
+    const locationString = `${hotel.location.city}, ${hotel.location.state}`;
+    const imageUrl = hotel.images && hotel.images.length > 0
+      ? hotel.images[0].url
+      : 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop';
+
+    const badgeMap: Record<string, { text: string; color: 'blue' | 'green' }> = {
+      luxury: { text: 'Luxury', color: 'blue' },
+      resort: { text: 'Resort', color: 'green' },
+      boutique: { text: 'Boutique', color: 'blue' },
+    };
+
+    return {
+      id: hotel._id,
+      name: hotel.name,
+      location: locationString,
+      rating: hotel.rating?.average || 4.5,
+      image: imageUrl,
+      badge: badgeMap[hotel.category],
+    };
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category === selectedCategory ? '' : category);
+  };
+
+  if (loading && hotels.length === 0) {
+    return (
+      <CustomerLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-gray-500">Loading hotels...</div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <CustomerLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-red-500">{error}</div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  const transformedHotels = hotels.map(transformHotel);
 
   return (
-    <div className="min-h-screen bg-ivory">
-      <CustomerHeader />
-
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-emerald-dark to-emerald py-16 sm:py-24">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-4">
+    <CustomerLayout>
+      <div className="space-y-8">
+        {/* Hero Section */}
+        <section className="bg-gradient-to-r from-emerald-dark to-emerald py-12 sm:py-16 rounded-lg">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4">
               Find Your Perfect Stay
             </h1>
             <p className="text-lg sm:text-xl text-white/90">
@@ -63,22 +175,150 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Search Widget */}
+          {/* Search Fields - All directly in page (like admin users page) */}
           <div className="flex justify-center">
-            <SearchWidget />
+            <div className="bg-ivory-light rounded-2xl shadow-xl p-6 max-w-5xl w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Location Input */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Location</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 z-10" />
+                    <Input
+                      label=""
+                      type="text"
+                      placeholder="City, State, or Country"
+                      value={searchLocation}
+                      onChange={(e) => setSearchLocation(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+
+                {/* Check-in Input */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Check-in</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      min={today}
+                      value={checkIn || tomorrowStr}
+                      onChange={(e) => setCheckIn(e.target.value)}
+                      className="w-full px-4 py-3 bg-ivory-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Check-out Input */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Check-out</label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      min={checkIn || tomorrowStr}
+                      value={checkOut || dayAfterTomorrowStr}
+                      onChange={(e) => setCheckOut(e.target.value)}
+                      className="w-full px-4 py-3 bg-ivory-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                {/* Guests Input */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Guests</label>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowGuestsDropdown(!showGuestsDropdown)}
+                      className="w-full px-4 py-3 bg-ivory-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none text-left flex items-center justify-between transition-colors"
+                    >
+                      <span className={guests ? "text-gray-700" : "text-gray-400"}>
+                        {guests || 'Select guests'}
+                      </span>
+                      <Users className="w-5 h-5 text-gray-400" />
+                    </button>
+                    {showGuestsDropdown && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-10" 
+                          onClick={() => setShowGuestsDropdown(false)}
+                        />
+                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
+                          {guestOptions.map((option) => (
+                            <button
+                              key={option}
+                              type="button"
+                              onClick={() => {
+                                setGuests(option);
+                                setShowGuestsDropdown(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-gray-100 first:rounded-t-lg last:rounded-b-lg transition-colors"
+                            >
+                              {option}
+                            </button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Category Filters */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <CategoryFilters />
-      </section>
+        {/* Category Filters */}
+        <section>
+          <CategoryFilters
+            selectedCategory={selectedCategory}
+            onCategoryChange={handleCategoryChange}
+          />
+        </section>
 
-      {/* Featured Hotels */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <FeaturedHotels hotels={featuredHotels} />
-      </section>
-    </div>
+        {/* Hotels List */}
+        <section>
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-charcoal">
+              {searchLocation 
+                ? `Hotels in ${searchLocation}`
+                : selectedCategory
+                ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Hotels`
+                : 'All Hotels'}
+            </h2>
+            <span className="text-sm text-charcoal-light">
+              {hotels.length} {hotels.length === 1 ? 'hotel' : 'hotels'} found
+            </span>
+          </div>
+
+          {loading && hotels.length > 0 && (
+            <div className="text-center py-4">
+              <div className="text-gray-500 text-sm">Updating results...</div>
+            </div>
+          )}
+
+          {transformedHotels.length === 0 && !loading ? (
+            <div className="text-center py-12">
+              <p className="text-charcoal-light text-lg">
+                No hotels found{searchLocation ? ` in ${searchLocation}` : selectedCategory ? ` in ${selectedCategory} category` : ''}.
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-6">
+              {transformedHotels.map((hotel) => (
+                <HotelCard
+                  key={hotel.id}
+                  name={hotel.name}
+                  location={hotel.location}
+                  rating={hotel.rating}
+                  image={hotel.image}
+                  badge={hotel.badge}
+                  onFavorite={() => console.log('Favorite:', hotel.name)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+    </CustomerLayout>
   );
 }

@@ -73,7 +73,7 @@ export default function RegisterCard() {
       if (user.role === 'hotel_owner') {
         router.push(user.isApproved ? '/hotel-owner/dashboard' : '/hotel-owner/pending-approval');
       } else {
-        router.push('/');
+        router.push('/customer/dashboard');
       }
     }
     // Errors are automatically handled by Redux

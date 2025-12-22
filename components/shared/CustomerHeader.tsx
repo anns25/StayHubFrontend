@@ -25,11 +25,10 @@ export default function CustomerHeader() {
     router.push('/login');
   };
 
-
-  // Get user initials safely
-
+  // Get user details safely
   const userInitials = mounted && user?.name ? user.name.charAt(0).toUpperCase() : 'U';
   const userName = mounted && user?.name ? user.name : 'User';
+  const userProfileImage = mounted && user?.profileImage ? user.profileImage : null;
 
   return (
     <header className="bg-ivory-light border-b border-gray-200 sticky top-0 z-50 h-20">
@@ -74,11 +73,20 @@ export default function CustomerHeader() {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <div className="w-8 h-8 bg-gradient-to-r from-emerald-dark to-emerald rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-medium">
-                    {userInitials}
-                  </span>
-                </div>
+                {userProfileImage ? (
+                  <img
+                    src={userProfileImage}
+                    alt={userName}
+                    className="w-8 h-8 rounded-full object-cover border-2 border-emerald"
+                    suppressHydrationWarning
+                  />
+                ) : (
+                  <div className="w-8 h-8 bg-gradient-to-r from-emerald-dark to-emerald rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium" suppressHydrationWarning>
+                      {userInitials}
+                    </span>
+                  </div>
+                )}
                 <div className="hidden md:block text-left">
                   <div className="text-sm font-medium text-gray-900" suppressHydrationWarning>
                     {userName}
@@ -135,6 +143,9 @@ export default function CustomerHeader() {
               </a>
               <a href="/customer/favorites" className="text-gray-700 hover:text-emerald font-medium">
                 Favorites
+              </a>
+              <a href="/customer/profile" className="text-gray-700 hover:text-emerald font-medium">
+                Profile
               </a>
               <button
                 onClick={handleLogout}

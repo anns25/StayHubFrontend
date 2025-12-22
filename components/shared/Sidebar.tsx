@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
-import { LayoutDashboard, Building2, Users, Star, BarChart3, Settings, X, LogOut } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { LayoutDashboard, Building2, Users, Star, BarChart3, Settings, X, LogOut, User } from 'lucide-react';
 import { logout } from '@/lib/api';
+import { useAppSelector } from '@/store/hooks';
+import Link from 'next/link';
 
 interface MenuItem {
   label: string;
@@ -16,6 +18,13 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ activeItem = 'Dashboard' }: SidebarProps) {
+  const [mounted, setMounted] = useState(false);
+  const { user } = useAppSelector((state) => state.auth);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const closeSidebar = () => {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebar-overlay');
@@ -26,6 +35,11 @@ export default function Sidebar({ activeItem = 'Dashboard' }: SidebarProps) {
   const handleLogout = () => {
     logout();
   };
+
+  const userInitials = mounted && user?.name ? user.name.charAt(0).toUpperCase() : 'A';
+  const userName = mounted && user?.name ? user.name : 'Admin';
+  const userEmail = mounted && user?.email ? user.email : '';
+  const userProfileImage = mounted && user?.profileImage ? user.profileImage : null;
 
   const menuItems: MenuItem[] = [
     {
@@ -58,6 +72,15 @@ export default function Sidebar({ activeItem = 'Dashboard' }: SidebarProps) {
       href: '/admin/analytics',
       active: activeItem === 'Analytics',
     },
+  ];
+
+  const settingsItems: MenuItem[] = [
+    {
+      label: 'Profile Settings',
+      icon: <User className="w-5 h-5" />,
+      href: '/admin/profile',
+      active: activeItem === 'Profile',
+    },
     {
       label: 'Settings',
       icon: <Settings className="w-5 h-5" />,
@@ -76,40 +99,83 @@ export default function Sidebar({ activeItem = 'Dashboard' }: SidebarProps) {
       ></div>
 
       {/* Sidebar */}
-      <aside className="w-64 bg-emerald-dark min-h-screen fixed left-0 top-20 bottom-0 overflow-y-auto z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300" id="sidebar">
-        <div className="p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-6 sm:mb-8 lg:block">
-            <div>
-              <h2 className="text-base sm:text-lg font-semibold text-ivory">Admin Panel</h2>
-              <p className="text-xs sm:text-sm text-ivory/80 mt-1">System Control</p>
+      <aside className="w-64 bg-emerald-dark fixed left-0 top-20 bottom-0 z-50 transform -translate-x-full lg:translate-x-0 transition-transform duration-300 border-r border-emerald flex flex-col" id="sidebar">
+        <div className="flex flex-col h-full p-4 sm:p-6">
+
+          {/* User Profile Section */}
+          <div className="mb-6 pb-6 border-b border-emerald/20 flex-shrink-0">
+            <div className="flex items-center space-x-3 mb-3">
+              {userProfileImage ? (
+                <img
+                  src={userProfileImage}
+                  alt={userName}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-emerald flex-shrink-0"
+                  suppressHydrationWarning
+                />
+              ) : (
+                <div className="w-12 h-12 bg-gradient-to-r from-emerald to-emerald-dark rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-lg font-semibold" suppressHydrationWarning>
+                    {userInitials}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-white truncate" suppressHydrationWarning>
+                  {userName}
+                </div>
+                <div className="text-xs text-ivory/80 truncate" suppressHydrationWarning>
+                  {userEmail}
+                </div>
+              </div>
             </div>
-            <button
-              onClick={closeSidebar}
-              className="lg:hidden p-2 text-gray-600 hover:text-gray-900"
-              aria-label="Close menu"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="text-xs text-ivory/60">Administrator</div>
           </div>
 
-          <nav className="space-y-2">
+          {/* Main Navigation */}
+          <nav className="space-y-2 flex-1 min-h-0">
             {menuItems.map((item) => (
-              <a
+              <Link
                 key={item.href}
                 href={item.href}
                 onClick={closeSidebar}
-                className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${item.active
+                className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${
+                  item.active
                     ? 'bg-emerald text-white font-medium'
                     : 'text-ivory hover:bg-emerald/20'
-                  }`}
+                }`}
               >
                 {item.icon}
                 <span className="text-xs sm:text-sm">{item.label}</span>
-              </a>
+              </Link>
             ))}
           </nav>
-          {/* Logout Button */}
-          <div className="mt-auto pt-4 border-t border-emerald/20">
+
+          {/* Settings Section */}
+          <div className="flex-shrink-0 pt-4 border-t border-emerald/20">
+            <div className="mb-4">
+              <div className="px-3 sm:px-4 mb-2">
+                <span className="text-xs text-ivory/60 uppercase tracking-wider">Settings</span>
+              </div>
+              <nav className="space-y-2">
+                {settingsItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={closeSidebar}
+                    className={`flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors ${
+                      item.active
+                        ? 'bg-emerald text-white font-medium'
+                        : 'text-ivory hover:bg-emerald/20'
+                    }`}
+                  >
+                    {item.icon}
+                    <span className="text-xs sm:text-sm">{item.label}</span>
+                  </Link>
+                ))}
+              </nav>
+            </div>
+
+            {/* Logout Button */}
             <button
               onClick={handleLogout}
               className="flex items-center space-x-3 px-3 sm:px-4 py-2 sm:py-3 rounded-lg transition-colors w-full text-ivory hover:bg-red-600/20 hover:text-red-300"
@@ -119,7 +185,6 @@ export default function Sidebar({ activeItem = 'Dashboard' }: SidebarProps) {
             </button>
           </div>
         </div>
-
       </aside>
     </>
   );
