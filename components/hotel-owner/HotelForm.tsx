@@ -108,10 +108,23 @@ export default function HotelForm({ hotelId, onSuccess, onCancel }: HotelFormPro
                 name: hotel.name || '',
                 description: hotel.description || '',
                 category: hotel.category || 'mid-range',
-                location: hotel.location || formData.location,
+                location: {
+                    ...formData.location,
+                    ...(hotel.location || {}),
+                },
                 amenities: hotel.amenities || [],
-                policies: hotel.policies || formData.policies,
-                contact: hotel.contact || formData.contact,
+                policies: {
+                    ...formData.policies,
+                    ...(hotel.policies || {}),
+                    // Ensure all boolean and number fields have defaults
+                    pets: hotel.policies?.pets ?? false,
+                    smoking: hotel.policies?.smoking ?? false,
+                    ageRestriction: hotel.policies?.ageRestriction ?? 0,
+                },
+                contact: {
+                    ...formData.contact,
+                    ...(hotel.contact || {}),
+                },
             });
             if (hotel.images) {
                 setImagePreviews(hotel.images.map((img: any) => img.url));
@@ -251,12 +264,12 @@ export default function HotelForm({ hotelId, onSuccess, onCancel }: HotelFormPro
             });
 
             // Add policies
-            formDataToSend.append('policies[checkIn]', formData.policies.checkIn);
-            formDataToSend.append('policies[checkOut]', formData.policies.checkOut);
-            formDataToSend.append('policies[cancellation]', formData.policies.cancellation);
-            formDataToSend.append('policies[pets]', formData.policies.pets.toString());
-            formDataToSend.append('policies[smoking]', formData.policies.smoking.toString());
-            formDataToSend.append('policies[ageRestriction]', formData.policies.ageRestriction.toString());
+            formDataToSend.append('policies[checkIn]', formData.policies?.checkIn || '');
+            formDataToSend.append('policies[checkOut]', formData.policies?.checkOut || '');
+            formDataToSend.append('policies[cancellation]', formData.policies?.cancellation || '');
+            formDataToSend.append('policies[pets]', (formData.policies?.pets ?? false).toString());
+            formDataToSend.append('policies[smoking]', (formData.policies?.smoking ?? false).toString());
+            formDataToSend.append('policies[ageRestriction]', (formData.policies?.ageRestriction ?? 0).toString());
 
             // Add contact
             formDataToSend.append('contact[phone]', formData.contact.phone);
