@@ -50,6 +50,7 @@ export default function CustomerDashboard() {
 
   const favoriteHotels = [
     {
+      id: '1',
       name: 'Oceanview Paradise',
       location: 'Malibu, CA',
       rating: 4.8,
@@ -58,6 +59,7 @@ export default function CustomerDashboard() {
       isFavorite: true,
     },
     {
+      id: '2',
       name: 'Mountain Retreat',
       location: 'Aspen, CO',
       rating: 4.9,
@@ -69,6 +71,7 @@ export default function CustomerDashboard() {
 
   const recommendedHotels = [
     {
+      id: '3',
       name: 'City Center Hotel',
       location: 'New York, NY',
       rating: 4.7,
@@ -77,6 +80,7 @@ export default function CustomerDashboard() {
       isFavorite: false,
     },
     {
+      id: '4',
       name: 'Beachfront Resort',
       location: 'Cancun, Mexico',
       rating: 4.6,

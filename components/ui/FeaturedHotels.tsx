@@ -26,6 +26,7 @@ export default function FeaturedHotels({ hotels }: FeaturedHotelsProps) {
         {hotels.map((hotel) => (
           <HotelCard
             key={hotel.id}
+            id={hotel.id}
             name={hotel.name}
             location={hotel.location}
             rating={hotel.rating}

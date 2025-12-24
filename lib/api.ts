@@ -36,8 +36,8 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
-      error.response?.data?.error || 
+      error.response?.data?.message ||
+      error.response?.data?.error ||
       'Registration failed'
     );
   }
@@ -56,10 +56,10 @@ export const login = async (data: LoginData): Promise<AuthResponse> => {
       url: error.config?.url,
       baseURL: error.config?.baseURL,
     });
-    
+
     throw new Error(
-      error.response?.data?.message || 
-      error.response?.data?.error || 
+      error.response?.data?.message ||
+      error.response?.data?.error ||
       error.message ||
       'Login failed'
     );
@@ -73,8 +73,8 @@ export const getCurrentUser = async (): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
-      error.response?.data?.error || 
+      error.response?.data?.message ||
+      error.response?.data?.error ||
       'Failed to get user'
     );
   }
@@ -90,7 +90,7 @@ export const logout = async () => {
   } finally {
     // Clear cookies
     cookieUtils.clearAuth();
-    
+
     // Redirect to login page
     if (typeof window !== 'undefined') {
       window.location.href = '/login';
@@ -105,7 +105,7 @@ export const forgotPassword = async (email: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to send reset email'
     );
   }
@@ -124,7 +124,7 @@ export const getPendingApprovals = async (): Promise<any> => {
       url: error.config?.url,
     });
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       error.response?.data?.error ||
       `Failed to fetch pending approvals: ${error.response?.status || 'Network error'}`
     );
@@ -138,7 +138,7 @@ export const approveUser = async (userId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to approve user'
     );
   }
@@ -157,7 +157,7 @@ export const getAllUsers = async (params?: {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch users'
     );
   }
@@ -170,7 +170,7 @@ export const getUserStatistics = async (): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch user statistics'
     );
   }
@@ -183,7 +183,7 @@ export const getMyHotels = async (): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch hotels'
     );
   }
@@ -196,7 +196,7 @@ export const getHotel = async (hotelId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch hotel'
     );
   }
@@ -213,7 +213,7 @@ export const createHotel = async (formData: FormData): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to create hotel'
     );
   }
@@ -230,7 +230,7 @@ export const updateHotel = async (hotelId: string, formData: FormData): Promise<
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to update hotel'
     );
   }
@@ -243,7 +243,7 @@ export const deleteHotel = async (hotelId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to delete hotel'
     );
   }
@@ -256,7 +256,7 @@ export const getRoomsByHotel = async (hotelId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch rooms'
     );
   }
@@ -269,7 +269,7 @@ export const getRoom = async (roomId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch room'
     );
   }
@@ -286,7 +286,7 @@ export const createRoom = async (formData: FormData): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to create room'
     );
   }
@@ -303,7 +303,7 @@ export const updateRoom = async (roomId: string, formData: FormData): Promise<an
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to update room'
     );
   }
@@ -316,7 +316,7 @@ export const deleteRoom = async (roomId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to delete room'
     );
   }
@@ -329,7 +329,7 @@ export const approveHotel = async (hotelId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to approve hotel'
     );
   }
@@ -342,7 +342,7 @@ export const getPendingHotels = async (): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch pending hotels'
     );
   }
@@ -355,7 +355,7 @@ export const rejectHotel = async (hotelId: string, reason?: string): Promise<any
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to reject hotel'
     );
   }
@@ -372,7 +372,7 @@ export const updateProfile = async (formData: FormData): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to update profile'
     );
   }
@@ -391,7 +391,7 @@ export const getHotels = async (params?: {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch hotels'
     );
   }
@@ -404,7 +404,7 @@ export const getHotelById = async (hotelId: string): Promise<any> => {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch hotel'
     );
   }
@@ -423,8 +423,56 @@ export const searchHotels = async (params?: {
     return response.data;
   } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to search hotels'
+    );
+  }
+};
+
+// Customer: Create Booking
+export const createBooking = async (bookingData: {
+  room: string;
+  checkIn: string;
+  checkOut: string;
+  guests: {
+    adults: number;
+    children: number;
+  };
+  specialRequests?: string;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.post('/bookings', bookingData);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to create booking'
+    );
+  }
+};
+
+// Customer: Get my bookings
+export const getMyBookings = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/bookings/my-bookings');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to fetch bookings'
+    )
+  }
+};
+
+// Customer: Get single booking
+export const getBooking = async (bookingId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/bookings/${bookingId}`);
+    return response.data;
+  }catch (error: any) {
+    throw new Error(
+      error.response?.data?.message || 
+      'Failed to fetch booking'
     );
   }
 };
