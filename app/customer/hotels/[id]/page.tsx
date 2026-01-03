@@ -6,6 +6,13 @@ import CustomerLayout from '@/components/shared/CustomerLayout';
 import { getHotelById, getRoomsByHotel } from '@/lib/api';
 import { Star, MapPin, Wifi, Car, Utensils, Dumbbell, Waves, Coffee, Calendar, Users, Shield, Clock, CheckCircle } from 'lucide-react';
 import BookingForm from '@/components/booking/BookingForm';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  setDateRange,
+  setSelectedRooms,
+  openBookingModal,
+  closeBookingModal
+} from '@/store/slices/operationSlice';
 
 interface Hotel {
   _id: string;
@@ -81,13 +88,18 @@ export default function HotelDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
-  const [showBookingForm, setShowBookingForm] = useState(false);
+  const dispatch = useAppDispatch();
+  const {
+    selectedDateRange,
+    selectedRooms,
+    isBookingModalOpen
+  } = useAppSelector((state) => state.operations);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // Get dates from URL params (from search page)
-  const checkIn = searchParams.get('checkIn') || '';
-  const checkOut = searchParams.get('checkOut') || '';
   const guestsParam = searchParams.get('guests') || '';
+
+  const checkIn = selectedDateRange?.checkIn || searchParams.get('checkIn') || '';
+  const checkOut = selectedDateRange?.checkOut || searchParams.get('checkOut') || '';
 
   useEffect(() => {
     const fetchHotelData = async () => {
@@ -115,13 +127,23 @@ export default function HotelDetailPage() {
     }
   }, [hotelId]);
 
+  // Update handleBookRoom
   const handleBookRoom = (room: Room) => {
     setSelectedRoom(room);
-    setShowBookingForm(true);
+    dispatch(setSelectedRooms([room._id]));
+    dispatch(openBookingModal());
   };
 
+  // Update booking success handler
   const handleBookingSuccess = (bookingId: string) => {
+    dispatch(closeBookingModal());
+    dispatch(setSelectedRooms([]));
     router.push(`/customer/bookings/${bookingId}`);
+  };
+
+  // Update modal close
+  const handleCloseBookingForm = () => {
+    dispatch(closeBookingModal());
   };
 
   if (loading) {
@@ -144,8 +166,8 @@ export default function HotelDetailPage() {
     );
   }
 
-  const allImages = hotel.images && hotel.images.length > 0 
-    ? hotel.images 
+  const allImages = hotel.images && hotel.images.length > 0
+    ? hotel.images
     : [{ url: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop' }];
   const mainImage = allImages[selectedImageIndex]?.url || allImages[0].url;
   const otherImages = allImages.slice(0, 5);
@@ -165,7 +187,7 @@ export default function HotelDetailPage() {
               />
             </div>
             {otherImages.slice(1, 5).map((img, index) => (
-              <div 
+              <div
                 key={index}
                 className="relative cursor-pointer group"
                 onClick={() => setSelectedImageIndex(index + 1)}
@@ -225,8 +247,8 @@ export default function HotelDetailPage() {
                   {hotel.amenities.map((amenity, index) => {
                     const Icon = amenityIcons[amenity] || CheckCircle;
                     return (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         className="flex items-center space-x-3 p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors"
                       >
                         <div className="p-2 bg-emerald/10 rounded-lg">
@@ -319,9 +341,9 @@ export default function HotelDetailPage() {
                                 </span>
                               )}
                             </div>
-                            
+
                             <p className="text-charcoal-light mb-4 text-sm leading-relaxed">{room.description}</p>
-                            
+
                             <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                               <div className="flex items-center space-x-2 text-charcoal-light">
                                 <Users className="w-4 h-4 text-emerald" />
@@ -405,9 +427,9 @@ export default function HotelDetailPage() {
                     {checkIn && (
                       <div className="pb-4 border-b border-gray-200">
                         <p className="text-xs font-semibold text-charcoal-light uppercase tracking-wide mb-1">Check-in</p>
-                        <p className="font-semibold text-charcoal">{new Date(checkIn).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
+                        <p className="font-semibold text-charcoal">{new Date(checkIn).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
                           day: 'numeric',
                           year: 'numeric'
                         })}</p>
@@ -416,9 +438,9 @@ export default function HotelDetailPage() {
                     {checkOut && (
                       <div className="pb-4 border-b border-gray-200">
                         <p className="text-xs font-semibold text-charcoal-light uppercase tracking-wide mb-1">Check-out</p>
-                        <p className="font-semibold text-charcoal">{new Date(checkOut).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
+                        <p className="font-semibold text-charcoal">{new Date(checkOut).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
                           day: 'numeric',
                           year: 'numeric'
                         })}</p>
@@ -462,7 +484,7 @@ export default function HotelDetailPage() {
       </div>
 
       {/* Booking Form Modal */}
-      {showBookingForm && selectedRoom && (
+      {isBookingModalOpen && selectedRoom && (
         <BookingForm
           room={selectedRoom}
           hotel={hotel}
@@ -470,7 +492,6 @@ export default function HotelDetailPage() {
           checkOut={checkOut}
           guestsParam={guestsParam}
           onClose={() => {
-            setShowBookingForm(false);
             setSelectedRoom(null);
           }}
           onSuccess={handleBookingSuccess}

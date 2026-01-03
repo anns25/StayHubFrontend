@@ -5,6 +5,10 @@ import { LayoutDashboard, Building2, Bed, Wand2, Calendar, BarChart3, X, LogOut,
 import { logout } from '@/lib/api';
 import { useAppSelector } from '@/store/hooks';
 import Link from 'next/link';
+import { useAppDispatch } from '@/store/hooks';
+import { logout as logoutAction } from '@/store/slices/authSlice';
+import { clearActiveHotel } from '@/store/slices/activeHotelSlice';
+import { resetOperations } from '@/store/slices/operationSlice';
 
 interface MenuItem {
   label: string;
@@ -20,6 +24,7 @@ interface HotelOwnerSidebarProps {
 export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwnerSidebarProps) {
   const [mounted, setMounted] = useState(false);
   const { user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     setMounted(true);
@@ -33,7 +38,12 @@ export default function HotelOwnerSidebar({ activeItem = 'Dashboard' }: HotelOwn
   };
 
   const handleLogout = async () => {
+    dispatch(clearActiveHotel());
+    dispatch(resetOperations());
+
     await logout();
+
+    dispatch(logoutAction());
   };
 
   const userInitials = mounted && user?.name ? user.name.charAt(0).toUpperCase() : 'H';

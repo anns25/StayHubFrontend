@@ -7,6 +7,8 @@ import { Building2, Plus, Edit, Trash2, MapPin, CheckCircle, Clock } from 'lucid
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import HotelForm from '@/components/hotel-owner/HotelForm';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setActiveHotel, clearActiveHotel } from '@/store/slices/activeHotelSlice';
 
 interface Hotel {
   _id: string;
@@ -18,7 +20,7 @@ interface Hotel {
     state: string;
     country: string;
   };
-  images: Array<{ url: string }>;
+  images: Array<{ url: string; publicId?: string }>;
   isApproved: boolean;
   isActive: boolean;
   createdAt: string;
@@ -30,6 +32,25 @@ export default function HotelsPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingHotelId, setEditingHotelId] = useState<string | null>(null);
+  const dispatch = useAppDispatch();
+  const activeHotel = useAppSelector((state) => state.activeHotel);
+  const activeHotelId = activeHotel.hotelId || null;
+
+  // Add function to set active hotel
+  const handleSetActiveHotel = (hotel: Hotel) => {
+    dispatch(setActiveHotel({
+      hotelId: hotel._id,
+      hotel: {
+        _id: hotel._id,
+        name: hotel.name,
+        location: hotel.location,
+        images: hotel.images?.map(img =>({
+          url: img.url,
+          publicId: img.publicId || '',
+        })) || [],
+      }
+    }));
+  };
 
   useEffect(() => {
     fetchHotels();
@@ -54,6 +75,10 @@ export default function HotelsPage() {
   };
 
   const handleOpenEdit = (hotelId: string) => {
+    const hotel = hotels.find(h => h._id === hotelId);
+    if (hotel) {
+      handleSetActiveHotel(hotel);
+    }
     setEditingHotelId(hotelId);
     setIsModalOpen(true);
   };
@@ -182,6 +207,15 @@ export default function HotelsPage() {
 
                   {/* Actions */}
                   <div className="flex space-x-2 w-full pt-4">
+                    <button
+                      onClick={() => handleSetActiveHotel(hotel)}
+                      className={`px-3 py-1 rounded ${activeHotelId === hotel._id
+                          ? 'bg-emerald text-white'
+                          : 'bg-gray-200 text-gray-700'
+                        }`}
+                    >
+                      {activeHotelId === hotel._id ? 'Active' : 'Set Active'}
+                    </button>
                     <button
                       onClick={() => handleOpenEdit(hotel._id)}
                       className="flex items-center justify-center px-4 py-2 bg-emerald/10 text-emerald border border-emerald/20 rounded-lg hover:bg-emerald/20 hover:border-emerald/40 transition-all duration-200 group flex-1"

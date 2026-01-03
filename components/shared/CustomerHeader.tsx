@@ -7,6 +7,8 @@ import { useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/store/hooks';
 import { useRouter } from 'next/navigation';
+import { clearActiveHotel } from '@/store/slices/activeHotelSlice';
+import { resetOperations } from '@/store/slices/operationSlice';
 
 export default function CustomerHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,6 +23,8 @@ export default function CustomerHeader() {
   }, []);
 
   const handleLogout = () => {
+    dispatch(clearActiveHotel());
+    dispatch(resetOperations());
     dispatch(logout());
     router.push('/login');
   };

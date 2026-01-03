@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { X, Calendar, Users } from 'lucide-react';
 import { createBooking } from '@/lib/api';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  setDateRange,
+  setSelectedGuests,
+  setCurrentBooking,
+  clearCurrentBooking
+} from '@/store/slices/operationSlice';
 
 interface Room {
   _id: string;
@@ -41,10 +48,51 @@ export default function BookingForm({
   onClose,
   onSuccess,
 }: BookingFormProps) {
-  const [checkIn, setCheckIn] = useState(initialCheckIn || '');
-  const [checkOut, setCheckOut] = useState(initialCheckOut || '');
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
+  const dispatch = useAppDispatch();
+  const {
+    selectedDateRange,
+    selectedGuests
+  } = useAppSelector((state) => state.operations);
+
+  // Use Redux state with fallback to props
+  const [checkIn, setCheckIn] = useState(
+    selectedDateRange?.checkIn || initialCheckIn || ''
+  );
+  const [checkOut, setCheckOut] = useState(
+    selectedDateRange?.checkOut || initialCheckOut || ''
+  );
+  const [adults, setAdults] = useState(
+    selectedGuests?.adults || 1
+  );
+  const [children, setChildren] = useState(
+    selectedGuests?.children || 0
+  );
+
+  // Sync local state with Redux on changes
+  const handleCheckInChange = (value: string) => {
+    setCheckIn(value);
+    if (checkOut) {
+      dispatch(setDateRange({ checkIn: value, checkOut }));
+    }
+  };
+
+  const handleCheckOutChange = (value: string) => {
+    setCheckOut(value);
+    if (checkIn) {
+      dispatch(setDateRange({ checkIn, checkOut: value }));
+    }
+  };
+
+  const handleAdultsChange = (value: number) => {
+    setAdults(value);
+    dispatch(setSelectedGuests({ adults: value, children }));
+  };
+
+  const handleChildrenChange = (value: number) => {
+    setChildren(value);
+    dispatch(setSelectedGuests({ adults, children: value }));
+  };
+
   const [specialRequests, setSpecialRequests] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,6 +177,7 @@ export default function BookingForm({
         specialRequests: specialRequests.trim() || undefined,
       });
 
+      dispatch(setCurrentBooking(response.data));
       onSuccess(response.data._id);
     } catch (error: any) {
       setError(error.message || 'Failed to create booking');
@@ -136,6 +185,13 @@ export default function BookingForm({
       setLoading(false);
     }
   };
+
+  // Clear booking on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearCurrentBooking());
+    };
+  }, [dispatch]);
 
   const nights = calculateNights();
   const total = calculateTotal();

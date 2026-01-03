@@ -5,8 +5,61 @@ import KPICard from '@/components/ui/KPICard';
 import HotelAIInsightsCard from '@/components/ui/HotelAIInsightsCard';
 import HotelListTable from '@/components/ui/HotelListTable';
 import { Calendar, Percent, DollarSign } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { useEffect, useState } from 'react';
+import { getMyHotels } from '@/lib/api';
+import { setActiveHotel } from '@/store/slices/activeHotelSlice';
+import { useRouter } from 'next/navigation';
+
+interface Hotel {
+  _id: string;
+  name: string;
+  description: string;
+  category: string;
+  location: {
+    city: string;
+    state: string;
+    country: string;
+  };
+  images: Array<{ url: string; publicId?: string }>;
+  isApproved: boolean;
+  isActive: boolean;
+  createdAt: string;
+}
+
+// Transform backend hotel to HotelListTable format
+const transformHotelForTable = (hotel: Hotel) => {
+  const locationString = `${hotel.location.city}, ${hotel.location.state}`;
+
+  // Determine status based on hotel properties
+  let status: 'Active' | 'Maintenance' | 'Inactive' = 'Inactive';
+  if (hotel.isActive && hotel.isApproved) {
+    status = 'Active';
+  } else if (hotel.isActive && !hotel.isApproved) {
+    status = 'Maintenance'; // Pending approval
+  }
+
+  return {
+    id: hotel._id,
+    name: hotel.name,
+    location: locationString,
+    status,
+    rooms: 0, // TODO: Get actual room count from API
+    revenue: '$0', // TODO: Get actual revenue from API
+  };
+};
 
 export default function HotelOwnerDashboard() {
+
+  const router = useRouter();
+  const dispatch = useAppDispatch();
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const activeHotel = useAppSelector((state) => state.activeHotel);
+  const activeHotelId = activeHotel?.hotelId || null;
+
   const insights = [
     {
       text: 'Consider increasing weekend rates by 15% based on high demand patterns',
@@ -22,40 +75,75 @@ export default function HotelOwnerDashboard() {
     },
   ];
 
-  const hotels = [
-    {
-      id: '1',
-      name: 'Grand Plaza Hotel',
-      location: 'New York, NY',
-      status: 'Active' as const,
-      rooms: 156,
-      revenue: '$45,280',
-    },
-    {
-      id: '2',
-      name: 'Seaside Resort',
-      location: 'Miami, FL',
-      status: 'Active' as const,
-      rooms: 89,
-      revenue: '$38,920',
-    },
-    {
-      id: '3',
-      name: 'Mountain View Lodge',
-      location: 'Denver, CO',
-      status: 'Maintenance' as const,
-      rooms: 64,
-      revenue: '$22,150',
-    },
-    {
-      id: '4',
-      name: 'Downtown Boutique',
-      location: 'San Francisco, CA',
-      status: 'Active' as const,
-      rooms: 42,
-      revenue: '$18,230',
-    },
-  ];
+  useEffect(() => {
+    fetchHotels();
+  }, []);
+
+  // Auto-set first hotel as active if none selected
+  useEffect(() => {
+    if (hotels.length > 0 && !activeHotelId) {
+      const firstHotel = hotels[0];
+      dispatch(setActiveHotel({
+        hotelId: firstHotel._id,
+        hotel: {
+          _id: firstHotel._id,
+          name: firstHotel.name,
+          location: firstHotel.location,
+          images: firstHotel.images?.map(img => ({
+            url: img.url,
+            publicId: img.publicId || '',
+          })) || [],
+        },
+      }));
+    }
+  }, [hotels, activeHotelId, dispatch]);
+
+  const fetchHotels = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getMyHotels();
+      setHotels(response.data || []);
+    } catch (error: any) {
+      console.error('Error fetching hotels:', error);
+      setError(error.message || 'Failed to fetch hotels');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (hotel: { id: string }) => {
+    router.push(`/hotel-owner/hotels?edit=${hotel.id}`);
+  };
+
+  const handleView = (hotel: { id: string }) => {
+    const hotelData = hotels.find(h => h._id === hotel.id);
+    if (hotelData) {
+      dispatch(setActiveHotel({
+        hotelId: hotelData._id,
+        hotel: {
+          _id: hotelData._id,
+          name: hotelData.name,
+          location: hotelData.location,
+          images: hotelData.images?.map(img => ({
+            url: img.url,
+            publicId: img.publicId || '',
+          })) || [],
+        },
+      }));
+      router.push(`/hotel-owner/hotels`);
+    }
+  };
+
+  const handleDelete = (hotel: { id: string }) => {
+    // Navigate to hotels page where delete functionality exists
+    router.push(`/hotel-owner/hotels`);
+  };
+
+  const transformedHotels = hotels.map(transformHotelForTable);
+
+  // Display active hotel info if available
+  const activeHotelInfo = activeHotel?.hotel;
 
   return (
     <HotelOwnerLayout activeSidebarItem="Dashboard" onAddHotel={() => console.log('Add Hotel')}>
@@ -100,7 +188,7 @@ export default function HotelOwnerDashboard() {
 
         {/* Hotel List */}
         <HotelListTable
-          hotels={hotels}
+          hotels={transformedHotels}
           onEdit={(hotel) => console.log('Edit:', hotel)}
           onView={(hotel) => console.log('View:', hotel)}
           onDelete={(hotel) => console.log('Delete:', hotel)}

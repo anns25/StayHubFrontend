@@ -7,6 +7,14 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MapPin, Users } from 'lucide-react';
 import Input from '@/components/ui/Input';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  setDateRange,
+  setSelectedGuests,
+  clearDateRange,
+  clearSelectedGuests
+} from '@/store/slices/operationSlice';
+
 
 interface Hotel {
   _id: string;
@@ -34,24 +42,30 @@ export default function SearchContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  
+
   // All search fields directly controlled in page (like admin users page)
   const [searchLocation, setSearchLocation] = useState<string>('');
-  const [checkIn, setCheckIn] = useState<string>('');
-  const [checkOut, setCheckOut] = useState<string>('');
   const [guests, setGuests] = useState<string>('');
+  const dispatch = useAppDispatch();
+  const { selectedDateRange, selectedGuests } = useAppSelector(
+    (state) => state.operations
+  );
+
+  const checkIn = selectedDateRange?.checkIn || '';
+  const checkOut = selectedDateRange?.checkOut || '';
+
   const [showGuestsDropdown, setShowGuestsDropdown] = useState(false);
 
   const guestOptions = ['1 Guest', '2 Guests', '3 Guests', '4 Guests', '5+ Guests'];
 
   // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];
-  
+
   // Get tomorrow's date for default check-in
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
   const tomorrowStr = tomorrow.toISOString().split('T')[0];
-  
+
   // Get day after tomorrow for default check-out
   const dayAfterTomorrow = new Date();
   dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
@@ -63,12 +77,58 @@ export default function SearchContent() {
     const checkInParam = searchParams.get('checkIn');
     const checkOutParam = searchParams.get('checkOut');
     const guestsParam = searchParams.get('guests');
-    
+
     if (locationParam) setSearchLocation(locationParam);
-    if (checkInParam) setCheckIn(checkInParam);
-    if (checkOutParam) setCheckOut(checkOutParam);
-    if (guestsParam) setGuests(guestsParam);
-  }, [searchParams]); // Include searchParams in dependencies
+
+    // Update Redux instead of local state
+    if (checkInParam && checkOutParam) {
+      dispatch(setDateRange({
+        checkIn: checkInParam,
+        checkOut: checkOutParam
+      }));
+    }
+
+    if (guestsParam) {
+      setGuests(guestsParam);
+      const match = guestsParam.match(/(\d+)/);
+      if (match) {
+        const guestCount = parseInt(match[1]);
+        dispatch(setSelectedGuests({
+          adults: guestCount,
+          children: 0
+        }));
+      }
+    }
+  }, [searchParams, dispatch]);
+
+  const handleCheckInChange = (value: string) => {
+    dispatch(setDateRange({ 
+      checkIn: value, 
+      checkOut: checkOut || value 
+    }));
+  };
+  
+  const handleCheckOutChange = (value: string) => {
+    if (checkIn) {
+      dispatch(setDateRange({ 
+        checkIn, 
+        checkOut: value 
+      }));
+    }
+  };
+  
+  // Update guests change handler
+  const handleGuestsChange = (value: string) => {
+    setGuests(value);
+    const match = value.match(/(\d+)/);
+    if (match) {
+      const guestCount = parseInt(match[1]);
+      dispatch(setSelectedGuests({ 
+        adults: guestCount, 
+        children: 0 
+      }));
+    }
+  };
 
   // Debounced search - triggers 500ms after user stops typing (exactly like admin users page)
   useEffect(() => {
@@ -196,7 +256,13 @@ export default function SearchContent() {
                     type="date"
                     min={today}
                     value={checkIn || tomorrowStr}
-                    onChange={(e) => setCheckIn(e.target.value)}
+                    onChange={(e) => {
+                      const newCheckIn = e.target.value;
+                      dispatch(setDateRange({
+                        checkIn: newCheckIn,
+                        checkOut: checkOut || newCheckIn
+                      }))
+                    }}
                     className="w-full px-4 py-3 bg-ivory-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none transition-colors"
                   />
                 </div>
@@ -210,7 +276,15 @@ export default function SearchContent() {
                     type="date"
                     min={checkIn || tomorrowStr}
                     value={checkOut || dayAfterTomorrowStr}
-                    onChange={(e) => setCheckOut(e.target.value)}
+                    onChange={(e) => {
+                      const newCheckOut = e.target.value;
+                      if(checkIn) {
+                        dispatch(setDateRange({
+                          checkIn,
+                          checkOut: newCheckOut
+                        }));
+                    }
+                  }}
                     className="w-full px-4 py-3 bg-ivory-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none transition-colors"
                   />
                 </div>
@@ -232,8 +306,8 @@ export default function SearchContent() {
                   </button>
                   {showGuestsDropdown && (
                     <>
-                      <div 
-                        className="fixed inset-0 z-10" 
+                      <div
+                        className="fixed inset-0 z-10"
                         onClick={() => setShowGuestsDropdown(false)}
                       />
                       <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
@@ -272,11 +346,11 @@ export default function SearchContent() {
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-charcoal">
-            {searchLocation 
+            {searchLocation
               ? `Hotels in ${searchLocation}`
               : selectedCategory
-              ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Hotels`
-              : 'All Hotels'}
+                ? `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Hotels`
+                : 'All Hotels'}
           </h2>
           <span className="text-sm text-charcoal-light">
             {hotels.length} {hotels.length === 1 ? 'hotel' : 'hotels'} found
