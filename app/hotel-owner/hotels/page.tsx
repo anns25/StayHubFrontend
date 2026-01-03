@@ -208,15 +208,6 @@ export default function HotelsPage() {
                   {/* Actions */}
                   <div className="flex space-x-2 w-full pt-4">
                     <button
-                      onClick={() => handleSetActiveHotel(hotel)}
-                      className={`px-3 py-1 rounded ${activeHotelId === hotel._id
-                          ? 'bg-emerald text-white'
-                          : 'bg-gray-200 text-gray-700'
-                        }`}
-                    >
-                      {activeHotelId === hotel._id ? 'Active' : 'Set Active'}
-                    </button>
-                    <button
                       onClick={() => handleOpenEdit(hotel._id)}
                       className="flex items-center justify-center px-4 py-2 bg-emerald/10 text-emerald border border-emerald/20 rounded-lg hover:bg-emerald/20 hover:border-emerald/40 transition-all duration-200 group flex-1"
                       title="Edit hotel"
