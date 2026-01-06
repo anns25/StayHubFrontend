@@ -1,8 +1,9 @@
 'use client';
 
 import { Heart, Star } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { addToFavorites, removeFromFavorites } from '@/lib/api';
 
 interface HotelCardProps {
   id: string;
@@ -16,6 +17,7 @@ interface HotelCardProps {
   };
   onFavorite?: () => void;
   isFavorite?: boolean;
+  onFavoriteChange?: (hotelId: string, isFavorite: boolean) => void;
 }
 
 export default function HotelCard({
@@ -27,19 +29,47 @@ export default function HotelCard({
   badge,
   onFavorite,
   isFavorite = false,
+  onFavoriteChange,
 }: HotelCardProps) {
   const [favorite, setFavorite] = useState(isFavorite);
+  const [loading, setLoading] = useState(false);
 
-  const handleFavorite = (e: React.MouseEvent) => {
+  // Sync with prop changes
+  useEffect(() => {
+    setFavorite(isFavorite);
+  }, [isFavorite]);
+
+  const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    setFavorite(!favorite);
-    onFavorite?.();
+    if (loading) return;
+
+    const newFavoriteState = !favorite;
+
+    // Optimistic update
+    setFavorite(newFavoriteState);
+    setLoading(true);
+
+    try {
+      if (newFavoriteState) {
+        await addToFavorites(id);
+      } else {
+        await removeFromFavorites(id);
+      }
+      // Notify parent of change
+      onFavoriteChange?.(id, newFavoriteState);
+    } catch (error: any) {
+      // Revert on error
+      setFavorite(!newFavoriteState);
+      alert(error.message || 'Failed to update favorites');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <Link href={`/customer/hotels/${id}`} className="block">
-      <div className="bg-ivory-light rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow flex-shrink-0 w-80">
+      <div className="bg-ivory-light rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow w-full">
         {/* Image Container */}
         <div className="relative h-48 w-full bg-gray-200">
           <img
@@ -61,6 +91,7 @@ export default function HotelCard({
           {/* Favorite Button */}
           <button
             onClick={handleFavorite}
+            disabled={loading}
             className="absolute top-3 right-3 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors"
             aria-label="Add to favorites"
           >

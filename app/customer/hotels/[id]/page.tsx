@@ -175,33 +175,6 @@ export default function HotelDetailPage() {
   return (
     <CustomerLayout>
       <div className="space-y-8">
-        {/* Hero Section with Images */}
-        <div className="relative">
-          {/* Main Image Gallery */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[400px] md:h-[500px]">
-            <div className="md:col-span-2 md:row-span-2">
-              <img
-                src={mainImage}
-                alt={hotel.name}
-                className="w-full h-full object-cover rounded-xl shadow-lg"
-              />
-            </div>
-            {otherImages.slice(1, 5).map((img, index) => (
-              <div
-                key={index}
-                className="relative cursor-pointer group"
-                onClick={() => setSelectedImageIndex(index + 1)}
-              >
-                <img
-                  src={img.url}
-                  alt={`${hotel.name} ${index + 2}`}
-                  className="w-full h-full object-cover rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-colors" />
-              </div>
-            ))}
-          </div>
-        </div>
 
         {/* Hotel Header */}
         <div className="bg-ivory-light rounded-xl p-6 shadow-card">
@@ -227,6 +200,34 @@ export default function HotelDetailPage() {
                 </span>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Hero Section with Images */}
+        <div className="relative">
+          {/* Main Image Gallery */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[400px] md:h-[500px]">
+            <div className="md:col-span-2 md:row-span-2">
+              <img
+                src={mainImage}
+                alt={hotel.name}
+                className="w-full h-full object-cover rounded-xl shadow-lg"
+              />
+            </div>
+            {otherImages.slice(1, 5).map((img, index) => (
+              <div
+                key={index}
+                className="relative cursor-pointer group"
+                onClick={() => setSelectedImageIndex(index + 1)}
+              >
+                <img
+                  src={img.url}
+                  alt={`${hotel.name} ${index + 2}`}
+                  className="w-full h-full object-cover rounded-xl shadow-md group-hover:opacity-90 transition-opacity"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-colors" />
+              </div>
+            ))}
           </div>
         </div>
 

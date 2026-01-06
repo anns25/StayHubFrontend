@@ -1,6 +1,7 @@
 import apiClient from './api/client';
 import authClient from './api/authClient';
 import { cookieUtils } from './utils/cookies';
+import { BookingStatus } from '@/types';
 
 export interface RegisterData {
   name: string;
@@ -473,6 +474,89 @@ export const getBooking = async (bookingId: string): Promise<any> => {
     throw new Error(
       error.response?.data?.message || 
       'Failed to fetch booking'
+    );
+  }
+};
+
+// Customer: Cancel booking
+export const cancelBooking = async (bookingId: string, reason?: string): Promise<any> => {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}/cancel`, { reason });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to cancel booking'
+    );
+  }
+};
+
+// Customer: Get favorite hotels
+export const getFavoriteHotels = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/customers/favorites');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to fetch favorite hotels'
+    );
+  }
+};
+
+// Customer: Add hotel to favorites
+export const addToFavorites = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.post(`/customers/favorites/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to add to favorites'
+    );
+  }
+};
+
+// Customer: Remove hotel from favorites
+export const removeFromFavorites = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.delete(`/customers/favorites/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to remove from favorites'
+    );
+  }
+};
+
+// Hotel Owner: Get all bookings for my hotels
+export const getHotelOwnerBookings = async (params?: {
+  status?: string;
+  hotel?: string;
+  page?: number;
+  limit?: number;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.get('/bookings', { params });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to fetch bookings'
+    );
+  }
+};
+
+// Hotel Owner: Update booking status
+export const updateBookingStatus = async (bookingId: string, status: BookingStatus): Promise<any> => {
+  try {
+    const response = await apiClient.put(`/bookings/${bookingId}`, { status });
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to update booking status'
     );
   }
 };

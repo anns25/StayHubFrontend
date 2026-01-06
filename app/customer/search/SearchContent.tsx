@@ -2,7 +2,7 @@
 
 import CategoryFilters from '@/components/ui/CategoryFilters';
 import HotelCard from '@/components/ui/HotelCard';
-import { searchHotels, getHotels } from '@/lib/api';
+import { searchHotels, getHotels, getFavoriteHotels } from '@/lib/api';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MapPin, Users } from 'lucide-react';
@@ -42,6 +42,7 @@ export default function SearchContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [favoriteHotelIds, setFavoriteHotelIds] = useState<Set<string>>(new Set());
 
   // All search fields directly controlled in page (like admin users page)
   const [searchLocation, setSearchLocation] = useState<string>('');
@@ -70,6 +71,27 @@ export default function SearchContent() {
   const dayAfterTomorrow = new Date();
   dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
   const dayAfterTomorrowStr = dayAfterTomorrow.toISOString().split('T')[0];
+
+  // Fetch favorites on mount
+  useEffect(() => {
+    const fetchFavorites = async () => {
+      try {
+        const response = await getFavoriteHotels();
+        const favorites = Array.isArray(response) 
+          ? response 
+          : response.hotels || response.favorites || response.data || [];
+        const favoriteIds = new Set(
+          favorites.map((hotel: any) => hotel._id || hotel.id)
+        );
+        setFavoriteHotelIds(favoriteIds as Set<string>);
+      } catch (err) {
+        // Silently fail - favorites are optional
+        console.error('Failed to fetch favorites:', err);
+      }
+    };
+
+    fetchFavorites();
+  }, []);
 
   // Initialize from URL params on mount
   useEffect(() => {
@@ -100,6 +122,18 @@ export default function SearchContent() {
       }
     }
   }, [searchParams, dispatch]);
+
+  const handleFavoriteChange = (hotelId: string, isFavorite: boolean) => {
+    setFavoriteHotelIds(prev => {
+      const newSet = new Set(prev);
+      if (isFavorite) {
+        newSet.add(hotelId);
+      } else {
+        newSet.delete(hotelId);
+      }
+      return newSet;
+    });
+  };
 
   const handleCheckInChange = (value: string) => {
     dispatch(setDateRange({ 
@@ -370,7 +404,7 @@ export default function SearchContent() {
             </p>
           </div>
         ) : (
-          <div className="flex flex-wrap gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {transformedHotels.map((hotel) => (
               <HotelCard
                 key={hotel.id}
@@ -380,7 +414,8 @@ export default function SearchContent() {
                 rating={hotel.rating}
                 image={hotel.image}
                 badge={hotel.badge}
-                onFavorite={() => console.log('Favorite:', hotel.name)}
+                isFavorite={favoriteHotelIds.has(hotel.id)}
+                onFavoriteChange={handleFavoriteChange}
               />
             ))}
           </div>
