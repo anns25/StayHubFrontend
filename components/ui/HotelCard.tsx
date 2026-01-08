@@ -14,10 +14,12 @@ interface HotelCardProps {
   badge?: {
     text: string;
     color: 'blue' | 'green';
+    category?: string;
   };
   onFavorite?: () => void;
   isFavorite?: boolean;
   onFavoriteChange?: (hotelId: string, isFavorite: boolean) => void;
+  onBadgeClick?: (category: string) => void;
 }
 
 export default function HotelCard({
@@ -30,6 +32,7 @@ export default function HotelCard({
   onFavorite,
   isFavorite = false,
   onFavoriteChange,
+  onBadgeClick,
 }: HotelCardProps) {
   const [favorite, setFavorite] = useState(isFavorite);
   const [loading, setLoading] = useState(false);
@@ -67,6 +70,14 @@ export default function HotelCard({
     }
   };
 
+  const handleBadgeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (badge?.category && onBadgeClick) {
+      onBadgeClick(badge.category);
+    }
+  };
+
   return (
     <Link href={`/customer/hotels/${id}`} className="block">
       <div className="bg-ivory-light rounded-xl overflow-hidden shadow-card hover:shadow-card-hover transition-shadow w-full">
@@ -80,12 +91,14 @@ export default function HotelCard({
 
           {/* Badge */}
           {badge && (
-            <div
-              className={`absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white ${badge.color === 'blue' ? 'bg-emerald' : 'bg-gold'
-                }`}
+            <button
+              onClick={handleBadgeClick}
+              className={`absolute bottom-3 left-3 px-3 py-1 rounded-full text-xs font-semibold text-white transition-transform hover:scale-105 ${badge.color === 'blue' ? 'bg-emerald' : 'bg-gold'
+                } ${onBadgeClick && badge.category ? 'cursor-pointer' : 'cursor-default'}`}
+              title={onBadgeClick && badge.category ? `Filter by ${badge.text}` : undefined}
             >
               {badge.text}
-            </div>
+            </button>
           )}
 
           {/* Favorite Button */}

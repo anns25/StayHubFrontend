@@ -560,3 +560,41 @@ export const updateBookingStatus = async (bookingId: string, status: BookingStat
     );
   }
 };
+
+
+// Payment: Create payment intent
+export const createPaymentIntent = async (data: {
+  room: string;
+  checkIn: string;
+  checkOut: string;
+  guests: {
+    adults: number;
+    children: number;
+  };
+  specialRequests?: string;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.post('/payments/create-intent', data);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to create payment intent'
+    );
+  }
+};
+
+// Payment: Confirm payment and create booking
+export const confirmPayment = async (data: {
+  paymentIntentId: string;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.post('/payments/confirm', data);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to confirm payment'
+    );
+  }
+};

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Calendar, Users } from 'lucide-react';
-import { createBooking } from '@/lib/api';
+import { confirmPayment, createBooking, createPaymentIntent } from '@/lib/api';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import {
   setDateRange,
@@ -10,6 +10,7 @@ import {
   setCurrentBooking,
   clearCurrentBooking
 } from '@/store/slices/operationSlice';
+import StripePayment from '@/components/booking/StripePayment';
 
 interface Room {
   _id: string;
@@ -53,6 +54,9 @@ export default function BookingForm({
     selectedDateRange,
     selectedGuests
   } = useAppSelector((state) => state.operations);
+  const [paymentStep, setPaymentStep] = useState<'details' | 'payment'>('details');
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
 
   // Use Redux state with fallback to props
   const [checkIn, setCheckIn] = useState(
@@ -166,21 +170,36 @@ export default function BookingForm({
 
     try {
       setLoading(true);
-      const response = await createBooking({
+      setError(null);
+
+      // Step 1 : Create Payment intent
+      const response = await createPaymentIntent({
         room: room._id,
         checkIn,
         checkOut,
-        guests: {
-          adults,
-          children,
-        },
+        guests: { adults, children },
         specialRequests: specialRequests.trim() || undefined,
       });
 
+      setClientSecret(response.clientSecret);
+      setPaymentAmount(response.amount);
+      setPaymentStep('payment');
+    } catch (error: any) {
+      setError(error.message || 'Failed to create booking');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add payment success handler
+  const handlePaymentSuccess = async (paymentIntentId: string) => {
+    try {
+      setLoading(true);
+      const response = await confirmPayment({ paymentIntentId });
       dispatch(setCurrentBooking(response.data));
       onSuccess(response.data._id);
     } catch (error: any) {
-      setError(error.message || 'Failed to create booking');
+      setError(error.message || 'Payment confirmation failed');
     } finally {
       setLoading(false);
     }
@@ -210,140 +229,163 @@ export default function BookingForm({
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Hotel & Room Info */}
-          <div className="bg-ivory-light rounded-lg p-4">
-            <h3 className="font-semibold text-charcoal mb-2">{hotel.name}</h3>
-            <p className="text-sm text-charcoal-light">{room.name}</p>
-            <p className="text-lg font-bold text-emerald mt-2">
-              ${room.price.base}
-              <span className="text-sm font-normal text-charcoal-light">/night</span>
-            </p>
-          </div>
-
-          {/* Dates */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Check-in
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  min={today}
-                  value={checkIn}
-                  onChange={(e) => setCheckIn(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
-                  required
-                />
-                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Check-out
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  min={minCheckOut}
-                  value={checkOut}
-                  onChange={(e) => setCheckOut(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
-                  required
-                />
-                <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-              </div>
-            </div>
-          </div>
-
-          {/* Guests */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Guests
-            </label>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-charcoal-light mb-1">Adults</label>
-                <input
-                  type="number"
-                  min="1"
-                  max={room.capacity.adults}
-                  value={adults}
-                  onChange={(e) => setAdults(parseInt(e.target.value) || 1)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-charcoal-light mb-1">Children</label>
-                <input
-                  type="number"
-                  min="0"
-                  max={room.capacity.children}
-                  value={children}
-                  onChange={(e) => setChildren(parseInt(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
-                />
-              </div>
-            </div>
-            <p className="text-xs text-charcoal-light mt-1">
-              Max: {room.capacity.adults} adults, {room.capacity.children} children
-            </p>
-          </div>
-
-          {/* Special Requests */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Special Requests (Optional)
-            </label>
-            <textarea
-              value={specialRequests}
-              onChange={(e) => setSpecialRequests(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
-              placeholder="Any special requests or preferences..."
+        {/* Conditional rendering based on payment step */}
+        {paymentStep === 'payment' && clientSecret ? (
+          <div className="p-6">
+            <StripePayment
+              clientSecret={clientSecret}
+              amount={paymentAmount}
+              onSuccess={handlePaymentSuccess}
+              onError={(error) => setError(error)}
             />
-          </div>
-
-          {/* Price Summary */}
-          <div className="bg-ivory-light rounded-lg p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-charcoal-light">${room.price.base} × {nights} nights</span>
-              <span className="text-charcoal">${nights * room.price.base}</span>
-            </div>
-            <div className="border-t pt-2 flex justify-between font-bold text-lg">
-              <span className="text-charcoal">Total</span>
-              <span className="text-emerald">${total}</span>
-            </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          {/* Submit Button */}
-          <div className="flex space-x-4">
+            {error && (
+              <div className="mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
             <button
               type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 text-charcoal rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              onClick={() => setPaymentStep('details')}
+              className="mt-4 w-full px-6 py-3 border border-gray-300 text-charcoal rounded-lg font-medium hover:bg-gray-50 transition-colors"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-emerald hover:bg-emerald-dark text-white rounded-lg font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Booking...' : 'Confirm Booking'}
+              Back to Details
             </button>
           </div>
-        </form>
+        ) : (
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            {/* Hotel & Room Info */}
+            <div className="bg-ivory-light rounded-lg p-4">
+              <h3 className="font-semibold text-charcoal mb-2">{hotel.name}</h3>
+              <p className="text-sm text-charcoal-light">{room.name}</p>
+              <p className="text-lg font-bold text-emerald mt-2">
+                ${room.price.base}
+                <span className="text-sm font-normal text-charcoal-light">/night</span>
+              </p>
+            </div>
+
+            {/* Dates */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Check-in
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    min={today}
+                    value={checkIn}
+                    onChange={(e) => setCheckIn(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
+                    required
+                  />
+                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Check-out
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    min={minCheckOut}
+                    value={checkOut}
+                    onChange={(e) => setCheckOut(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
+                    required
+                  />
+                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            {/* Guests */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Guests
+              </label>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs text-charcoal-light mb-1">Adults</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max={room.capacity.adults}
+                    value={adults}
+                    onChange={(e) => setAdults(parseInt(e.target.value) || 1)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-charcoal-light mb-1">Children</label>
+                  <input
+                    type="number"
+                    min="0"
+                    max={room.capacity.children}
+                    value={children}
+                    onChange={(e) => setChildren(parseInt(e.target.value) || 0)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-charcoal-light mt-1">
+                Max: {room.capacity.adults} adults, {room.capacity.children} children
+              </p>
+            </div>
+
+            {/* Special Requests */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Special Requests (Optional)
+              </label>
+              <textarea
+                value={specialRequests}
+                onChange={(e) => setSpecialRequests(e.target.value)}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none"
+                placeholder="Any special requests or preferences..."
+              />
+            </div>
+
+            {/* Price Summary */}
+            <div className="bg-ivory-light rounded-lg p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-charcoal-light">${room.price.base} × {nights} nights</span>
+                <span className="text-charcoal">${nights * room.price.base}</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                <span className="text-charcoal">Total</span>
+                <span className="text-emerald">${total}</span>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                {error}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-6 py-3 border border-gray-300 text-charcoal rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-emerald hover:bg-emerald-dark text-white rounded-lg font-medium transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Booking...' : 'Confirm Booking'}
+              </button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

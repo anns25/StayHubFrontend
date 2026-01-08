@@ -22,6 +22,23 @@ import {
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
+// Add payment status badge helper
+const getPaymentStatusBadge = (paymentStatus: string) => {
+    const statusConfig: Record<string, { label: string; className: string }> = {
+        pending: { label: 'Payment Pending', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+        paid: { label: 'Paid', className: 'bg-green-100 text-green-800 border-green-200' },
+        refunded: { label: 'Refunded', className: 'bg-blue-100 text-blue-800 border-blue-200' },
+        failed: { label: 'Payment Failed', className: 'bg-red-100 text-red-800 border-red-200' },
+    };
+
+    const config = statusConfig[paymentStatus] || statusConfig.pending;
+    return (
+        <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${config.className}`}>
+            {config.label}
+        </span>
+    );
+};
+
 // Status badge styling
 const getStatusBadge = (status: BookingStatus) => {
     const statusConfig = {
@@ -330,7 +347,10 @@ export default function HotelOwnerBookingsPage() {
                                                         </p>
                                                     )}
                                                 </div>
-                                                {getStatusBadge(booking.status)}
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {getStatusBadge(booking.status)}
+                                                    {getPaymentStatusBadge(booking.paymentStatus)}
+                                                </div>
                                             </div>
 
                                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -423,8 +443,8 @@ export default function HotelOwnerBookingsPage() {
                                                         )}
                                                         disabled={isUpdating}
                                                         className={`w-full flex items-center justify-between px-4 py-2 rounded-lg border-2 border-emerald text-emerald font-medium transition-colors ${isUpdating
-                                                                ? 'opacity-50 cursor-not-allowed'
-                                                                : 'hover:bg-emerald/10'
+                                                            ? 'opacity-50 cursor-not-allowed'
+                                                            : 'hover:bg-emerald/10'
                                                             }`}
                                                     >
                                                         {isUpdating ? (

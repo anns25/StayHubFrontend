@@ -3,9 +3,12 @@
 import CustomerLayout from '@/components/shared/CustomerLayout';
 import MetricCard from '@/components/ui/MetricCard';
 import HotelCard from '@/components/ui/HotelCard';
-import { Calendar, MapPin, Heart, Star, TrendingUp, Clock } from 'lucide-react';
+import { Calendar, MapPin, Heart, Star, TrendingUp, Clock, AlertCircle } from 'lucide-react';
 import { useAppSelector } from '@/store/hooks';
 import { useEffect, useState } from 'react';
+import { getMyBookings, getFavoriteHotels, getHotels } from '@/lib/api';
+import Button from '@/components/ui/Button';
+import { Booking } from '@/types/booking';
 
 // Consistent date formatter (MM/DD/YYYY format)
 const formatDate = (dateString: string): string => {
@@ -14,81 +17,199 @@ const formatDate = (dateString: string): string => {
   const day = date.getDate().toString().padStart(2, '0');
   const year = date.getFullYear();
   return `${month}/${day}/${year}`;
+};
+
+// Helper to get hotel image
+const getHotelImage = (hotel: any): string => {
+  const placeholder = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop';
+
+  if (!hotel?.images || !Array.isArray(hotel.images) || hotel.images.length === 0) {
+    return placeholder;
+  }
+
+  const firstImage = hotel.images[0];
+  if (typeof firstImage === 'string') {
+    return firstImage;
+  }
+  if (firstImage && typeof firstImage === 'object' && 'url' in firstImage) {
+    return firstImage.url || placeholder;
+  }
+
+  return placeholder;
+};
+
+// Helper to get location string
+const getLocationString = (hotel: any): string => {
+  if (!hotel?.location) return '';
+  const parts = [
+    hotel.location.city,
+    hotel.location.state,
+    hotel.location.country,
+  ].filter(Boolean);
+  return parts.join(', ');
+};
+
+interface BookingWithDetails extends Omit<Booking, 'hotel' | 'room'> {
+  hotel?: {
+    _id: string;
+    name: string;
+    location: {
+      city: string;
+      state?: string;
+      country: string;
+    };
+    images?: Array<{ url: string }>;
+  };
+  room?: {
+    _id: string;
+    name: string;
+    type: string;
+  };
+}
+
+interface Hotel {
+  _id: string;
+  name: string;
+  location: {
+    city: string;
+    state?: string;
+    country: string;
+  };
+  images?: Array<{ url: string; publicId?: string }>;
+  rating: {
+    average: number;
+    count: number;
+  };
 }
 
 export default function CustomerDashboard() {
   const { user } = useAppSelector((state) => state.auth);
   const [mounted, setMounted] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Prevent hydration mismath
+  // Data states
+  const [bookings, setBookings] = useState<BookingWithDetails[]>([]);
+  const [favoriteHotels, setFavoriteHotels] = useState<Hotel[]>([]);
+  const [recommendedHotels, setRecommendedHotels] = useState<Hotel[]>([]);
+
+  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
-  },[]);
+  }, []);
+
+  // Fetch all data
+  useEffect(() => {
+    if (mounted) {
+      fetchDashboardData();
+    }
+  }, [mounted]);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch all data in parallel
+      const [bookingsResponse, favoritesResponse, recommendedResponse] = await Promise.all([
+        getMyBookings().catch(() => ({ bookings: [], data: [] })),
+        getFavoriteHotels().catch(() => ({ hotels: [], favorites: [], data: [] })),
+        getHotels().catch(() => ({ hotels: [], data: [] })),
+      ]);
+
+      // Process bookings
+      const bookingsData = Array.isArray(bookingsResponse)
+        ? bookingsResponse
+        : bookingsResponse.bookings || bookingsResponse.data || [];
+      setBookings(bookingsData);
+
+      // Process favorites
+      const favoritesData = Array.isArray(favoritesResponse)
+        ? favoritesResponse
+        : favoritesResponse.hotels || favoritesResponse.favorites || favoritesResponse.data || [];
+      setFavoriteHotels(favoritesData);
+
+      // Process recommended hotels
+      const recommendedData = Array.isArray(recommendedResponse)
+        ? recommendedResponse
+        : recommendedResponse.hotels || recommendedResponse.data || [];
+      // Filter out hotels that are already in favorites
+      const favoriteIds = new Set(favoritesData.map((h: any) => h._id));
+      const filteredRecommended = recommendedData
+        .filter((h: any) => !favoriteIds.has(h._id))
+        .slice(0, 4);
+      setRecommendedHotels(filteredRecommended);
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get user name safely
   const userName = mounted && user?.name ? user.name.split(' ')[0] : 'Guest';
 
-  // Mock data - replace with actual API calls
-  const upcomingBookings = [
-    {
-      id: 1,
-      hotelName: 'Grand Emerald Resort',
-      location: 'San Francisco, CA',
-      checkIn: '2024-01-15',
-      checkOut: '2024-01-18',
-      image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800',
-    },
-    {
-      id: 2,
-      hotelName: 'Luxury Bay Hotel',
-      location: 'Miami, FL',
-      checkIn: '2024-02-10',
-      checkOut: '2024-02-14',
-      image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=800',
-    },
-  ];
+  // Calculate metrics
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const favoriteHotels = [
-    {
-      id: '1',
-      name: 'Oceanview Paradise',
-      location: 'Malibu, CA',
-      rating: 4.8,
-      image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?w=800',
-      badge: { text: 'Popular', color: 'green' as const },
-      isFavorite: true,
-    },
-    {
-      id: '2',
-      name: 'Mountain Retreat',
-      location: 'Aspen, CO',
-      rating: 4.9,
-      image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800',
-      badge: { text: 'New', color: 'blue' as const },
-      isFavorite: true,
-    },
-  ];
+  const upcomingBookings = bookings.filter((booking) => {
+    if (!['pending', 'confirmed'].includes(booking.status)) return false;
+    const checkInDate = new Date(booking.checkIn);
+    checkInDate.setHours(0, 0, 0, 0);
+    return checkInDate >= today;
+  }).slice(0, 2); // Show only first 2 for preview
 
-  const recommendedHotels = [
-    {
-      id: '3',
-      name: 'City Center Hotel',
-      location: 'New York, NY',
-      rating: 4.7,
-      image: 'https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=800',
-      badge: { text: 'AI Recommended', color: 'green' as const },
-      isFavorite: false,
-    },
-    {
-      id: '4',
-      name: 'Beachfront Resort',
-      location: 'Cancun, Mexico',
-      rating: 4.6,
-      image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800',
-      badge: { text: 'Best Deal', color: 'blue' as const },
-      isFavorite: false,
-    },
-  ];
+  const totalBookings = bookings.length;
+  const totalSpent = bookings.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0);
+  const favoriteCount = favoriteHotels.length;
+
+  // Calculate trends (comparing this month vs last month)
+  const thisMonth = new Date();
+  thisMonth.setDate(1);
+  thisMonth.setHours(0, 0, 0, 0);
+
+  const lastMonth = new Date(thisMonth);
+  lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+  const bookingsThisMonth = bookings.filter((b) => {
+    const bookingDate = new Date(b.createdAt || b.checkIn);
+    return bookingDate >= thisMonth;
+  }).length;
+
+  const bookingsLastMonth = bookings.filter((b) => {
+    const bookingDate = new Date(b.createdAt || b.checkIn);
+    return bookingDate >= lastMonth && bookingDate < thisMonth;
+  }).length;
+
+  const newBookingsText = bookingsThisMonth > bookingsLastMonth
+    ? `${bookingsThisMonth - bookingsLastMonth} this month`
+    : bookingsThisMonth > 0
+      ? `${bookingsThisMonth} this month`
+      : '';
+
+  if (loading) {
+    return (
+      <CustomerLayout>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-charcoal-light">Loading dashboard...</div>
+        </div>
+      </CustomerLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <CustomerLayout>
+        <div className="flex flex-col items-center justify-center py-12">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+          <Button onClick={fetchDashboardData}>Try Again</Button>
+        </div>
+      </CustomerLayout>
+    );
+  }
 
   return (
     <CustomerLayout>
@@ -105,30 +226,30 @@ export default function CustomerDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <MetricCard
             icon={Calendar}
-            value="3"
+            value={upcomingBookings.length.toString()}
             label="Upcoming Trips"
-            trend={{ value: '1 new', isPositive: true }}
+            trend={upcomingBookings.length > 0 ? { value: `${upcomingBookings.length} upcoming`, isPositive: true } : undefined}
             iconColor="green"
           />
           <MetricCard
             icon={MapPin}
-            value="12"
+            value={totalBookings.toString()}
             label="Total Bookings"
-            trend={{ value: '2 this month', isPositive: true }}
+            trend={newBookingsText ? { value: newBookingsText, isPositive: true } : undefined}
             iconColor="blue"
           />
           <MetricCard
             icon={Heart}
-            value="8"
+            value={favoriteCount.toString()}
             label="Favorite Hotels"
-            badge={{ text: '3 new', color: 'orange' }}
+            badge={favoriteCount > 0 ? { text: `${favoriteCount} saved`, color: 'orange' } : undefined}
             iconColor="orange"
           />
           <MetricCard
             icon={TrendingUp}
-            value="$2,450"
+            value={`$${totalSpent.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
             label="Total Spent"
-            trend={{ value: '15%', isPositive: true }}
+            trend={bookingsThisMonth > bookingsLastMonth ? { value: `${Math.round(((bookingsThisMonth - bookingsLastMonth) / Math.max(bookingsLastMonth, 1)) * 100)}%`, isPositive: true } : undefined}
             iconColor="green"
           />
         </div>
@@ -141,41 +262,67 @@ export default function CustomerDashboard() {
               View All
             </a>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {upcomingBookings.map((booking) => (
-              <div
-                key={booking.id}
-                className="bg-ivory-light rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow"
-              >
-                <div className="flex items-start space-x-4">
-                  <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                    <img
-                      src={booking.image}
-                      alt={booking.hotelName}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-charcoal mb-1">{booking.hotelName}</h3>
-                    <p className="text-sm text-charcoal-light mb-3 flex items-center">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      {booking.location}
-                    </p>
-                    <div className="flex items-center space-x-4 text-sm text-charcoal-light">
-                      <div className="flex items-center">
-                        <Calendar className="w-4 h-4 mr-1" />
-                        <span>Check-in: {formatDate(booking.checkIn)}</span>
+          {upcomingBookings.length === 0 ? (
+            <div className="bg-ivory-light rounded-xl p-12 text-center shadow-card">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-charcoal mb-2">No upcoming trips</h3>
+              <p className="text-charcoal-light mb-6">
+                You don't have any upcoming bookings. Start exploring hotels!
+              </p>
+              <Button onClick={() => window.location.href = '/customer/search'}>
+                Search Hotels
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {upcomingBookings.map((booking) => {
+                const hotel = typeof booking.hotel === 'object' ? booking.hotel : null;
+                const hotelImage = getHotelImage(hotel);
+                const location = hotel?.location
+                  ? getLocationString(hotel)
+                  : 'Location not available';
+
+                return (
+                  <div
+                    key={booking._id}
+                    className="bg-ivory-light rounded-xl p-6 shadow-card hover:shadow-card-hover transition-shadow"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
+                        <img
+                          src={hotelImage}
+                          alt={hotel?.name || 'Hotel'}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop';
+                          }}
+                        />
                       </div>
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>Check-out: {formatDate(booking.checkOut)}</span>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-charcoal mb-1">
+                          {hotel?.name || 'Hotel'}
+                        </h3>
+                        <p className="text-sm text-charcoal-light mb-3 flex items-center">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          {location}
+                        </p>
+                        <div className="flex items-center space-x-4 text-sm text-charcoal-light">
+                          <div className="flex items-center">
+                            <Calendar className="w-4 h-4 mr-1" />
+                            <span>Check-in: {formatDate(booking.checkIn)}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="w-4 h-4 mr-1" />
+                            <span>Check-out: {formatDate(booking.checkOut)}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* Favorite Hotels */}
@@ -186,11 +333,42 @@ export default function CustomerDashboard() {
               View All
             </a>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {favoriteHotels.map((hotel, index) => (
-              <HotelCard key={index} {...hotel} />
-            ))}
-          </div>
+          {favoriteHotels.length === 0 ? (
+            <div className="bg-ivory-light rounded-xl p-12 text-center shadow-card">
+              <Heart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-charcoal mb-2">No favorites yet</h3>
+              <p className="text-charcoal-light mb-6">
+                Start exploring hotels and add them to your favorites!
+              </p>
+              <Button onClick={() => window.location.href = '/customer/search'}>
+                Explore Hotels
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {favoriteHotels.slice(0, 4).map((hotel) => {
+                const locationString = getLocationString(hotel);
+                const hotelImage = getHotelImage(hotel);
+
+                return (
+                  <HotelCard
+                    key={hotel._id}
+                    id={hotel._id}
+                    name={hotel.name}
+                    location={locationString}
+                    rating={hotel.rating?.average || 0}
+                    image={hotelImage}
+                    isFavorite={true}
+                    onFavoriteChange={(hotelId, isFavorite) => {
+                      if (!isFavorite) {
+                        setFavoriteHotels(prev => prev.filter(h => h._id !== hotelId));
+                      }
+                    }}
+                  />
+                );
+              })}
+            </div>
+          )}
         </section>
 
         {/* AI Recommended Hotels */}
@@ -206,11 +384,52 @@ export default function CustomerDashboard() {
               Explore More
             </a>
           </div>
-          <div className="flex space-x-4 overflow-x-auto pb-4">
-            {recommendedHotels.map((hotel, index) => (
-              <HotelCard key={index} {...hotel} />
-            ))}
-          </div>
+          {recommendedHotels.length === 0 ? (
+            <div className="bg-ivory-light rounded-xl p-12 text-center shadow-card">
+              <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-charcoal mb-2">No recommendations available</h3>
+              <p className="text-charcoal-light mb-6">
+                Check back later for personalized hotel recommendations!
+              </p>
+              <Button onClick={() => window.location.href = '/customer/search'}>
+                Explore Hotels
+              </Button>
+            </div>
+          ) : (
+            <div className="flex space-x-4 overflow-x-auto pb-4">
+              {recommendedHotels.map((hotel) => {
+                const locationString = getLocationString(hotel);
+                const hotelImage = getHotelImage(hotel);
+                const isFavorite = favoriteHotels.some(f => f._id === hotel._id);
+
+                return (
+                  <div key={hotel._id} className="flex-shrink-0 w-64">
+                    <HotelCard
+                      id={hotel._id}
+                      name={hotel.name}
+                      location={locationString}
+                      rating={hotel.rating?.average || 0}
+                      image={hotelImage}
+                      badge={{ text: 'AI Recommended', color: 'green' }}
+                      isFavorite={isFavorite}
+                      onFavoriteChange={(hotelId, isFavorite) => {
+                        if (isFavorite) {
+                          // Add to favorites list
+                          const hotelToAdd = recommendedHotels.find(h => h._id === hotelId);
+                          if (hotelToAdd) {
+                            setFavoriteHotels(prev => [...prev, hotelToAdd]);
+                          }
+                        } else {
+                          // Remove from favorites list
+                          setFavoriteHotels(prev => prev.filter(h => h._id !== hotelId));
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
       </div>
     </CustomerLayout>

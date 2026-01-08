@@ -77,8 +77,8 @@ export default function SearchContent() {
     const fetchFavorites = async () => {
       try {
         const response = await getFavoriteHotels();
-        const favorites = Array.isArray(response) 
-          ? response 
+        const favorites = Array.isArray(response)
+          ? response
           : response.hotels || response.favorites || response.data || [];
         const favoriteIds = new Set(
           favorites.map((hotel: any) => hotel._id || hotel.id)
@@ -136,33 +136,38 @@ export default function SearchContent() {
   };
 
   const handleCheckInChange = (value: string) => {
-    dispatch(setDateRange({ 
-      checkIn: value, 
-      checkOut: checkOut || value 
+    dispatch(setDateRange({
+      checkIn: value,
+      checkOut: checkOut || value
     }));
   };
-  
+
   const handleCheckOutChange = (value: string) => {
     if (checkIn) {
-      dispatch(setDateRange({ 
-        checkIn, 
-        checkOut: value 
+      dispatch(setDateRange({
+        checkIn,
+        checkOut: value
       }));
     }
   };
-  
+
   // Update guests change handler
   const handleGuestsChange = (value: string) => {
     setGuests(value);
     const match = value.match(/(\d+)/);
     if (match) {
       const guestCount = parseInt(match[1]);
-      dispatch(setSelectedGuests({ 
-        adults: guestCount, 
-        children: 0 
+      dispatch(setSelectedGuests({
+        adults: guestCount,
+        children: 0
       }));
     }
   };
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchHotels();
+  }, [])
 
   // Debounced search - triggers 500ms after user stops typing (exactly like admin users page)
   useEffect(() => {
@@ -187,18 +192,21 @@ export default function SearchContent() {
           params.category = selectedCategory;
         }
         const response = await searchHotels(params);
-        setHotels(response.data || []);
+        const hotelsData = response.data || response.hotel || [];
+        setHotels(Array.isArray(hotelsData) ? hotelsData : []);
       } else {
         const params: any = {};
         if (selectedCategory) {
           params.category = selectedCategory;
         }
         const response = await getHotels(params);
-        setHotels(response.data || []);
+        const hotelsData = response.data || response.hotels || [];
+        setHotels(Array.isArray(hotelsData) ? hotelsData : []);
       }
     } catch (error: any) {
       console.error('Error fetching hotels:', error);
       setError(error.message || 'Failed to fetch hotels');
+      setHotels([]);
     } finally {
       setLoading(false);
     }
@@ -211,10 +219,12 @@ export default function SearchContent() {
       ? hotel.images[0].url
       : 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&h=600&fit=crop';
 
-    const badgeMap: Record<string, { text: string; color: 'blue' | 'green' }> = {
-      luxury: { text: 'Luxury', color: 'blue' },
-      resort: { text: 'Resort', color: 'green' },
-      boutique: { text: 'Boutique', color: 'blue' },
+    const badgeMap: Record<string, { text: string; color: 'blue' | 'green'; category: string }> = {
+      luxury: { text: 'Luxury', color: 'blue', category: 'luxury' },
+      resort: { text: 'Resort', color: 'green', category: 'resort' },
+      boutique: { text: 'Boutique', color: 'blue', category: 'boutique' },
+      budget: { text: 'Budget', color: 'green', category: 'budget' },
+      'mid-range': { text: 'Mid-Range', color: 'blue', category: 'mid-range' },
     };
 
     return {
@@ -231,21 +241,11 @@ export default function SearchContent() {
     setSelectedCategory(category === selectedCategory ? '' : category);
   };
 
-  if (loading && hotels.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-gray-500">Loading hotels...</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-red-500">{error}</div>
-      </div>
-    );
-  }
+  const handleBadgeClick = (category: string) => {
+    setSelectedCategory(category === selectedCategory ? '' : category);
+    // Scroll to top of results
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const transformedHotels = hotels.map(transformHotel);
 
@@ -312,13 +312,13 @@ export default function SearchContent() {
                     value={checkOut || dayAfterTomorrowStr}
                     onChange={(e) => {
                       const newCheckOut = e.target.value;
-                      if(checkIn) {
+                      if (checkIn) {
                         dispatch(setDateRange({
                           checkIn,
                           checkOut: newCheckOut
                         }));
-                    }
-                  }}
+                      }
+                    }}
                     className="w-full px-4 py-3 bg-ivory-light border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald focus:border-transparent outline-none transition-colors"
                   />
                 </div>
@@ -416,6 +416,7 @@ export default function SearchContent() {
                 badge={hotel.badge}
                 isFavorite={favoriteHotelIds.has(hotel.id)}
                 onFavoriteChange={handleFavoriteChange}
+                onBadgeClick={handleBadgeClick}
               />
             ))}
           </div>
