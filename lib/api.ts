@@ -470,9 +470,9 @@ export const getBooking = async (bookingId: string): Promise<any> => {
   try {
     const response = await apiClient.get(`/bookings/${bookingId}`);
     return response.data;
-  }catch (error: any) {
+  } catch (error: any) {
     throw new Error(
-      error.response?.data?.message || 
+      error.response?.data?.message ||
       'Failed to fetch booking'
     );
   }
@@ -481,7 +481,7 @@ export const getBooking = async (bookingId: string): Promise<any> => {
 // Customer: Cancel booking
 export const cancelBooking = async (bookingId: string, reason?: string): Promise<any> => {
   try {
-    const response = await apiClient.put(`/bookings/${bookingId}/cancel`, { reason });
+    const response = await apiClient.patch(`/bookings/${bookingId}/cancel`, { reason });
     return response.data;
   } catch (error: any) {
     throw new Error(
@@ -551,7 +551,7 @@ export const getHotelOwnerBookings = async (params?: {
 // Hotel Owner: Update booking status
 export const updateBookingStatus = async (bookingId: string, status: BookingStatus): Promise<any> => {
   try {
-    const response = await apiClient.put(`/bookings/${bookingId}`, { status });
+    const response = await apiClient.patch(`/bookings/${bookingId}`, { status });
     return response.data;
   } catch (error: any) {
     throw new Error(
@@ -595,6 +595,78 @@ export const confirmPayment = async (data: {
     throw new Error(
       error.response?.data?.message ||
       'Failed to confirm payment'
+    );
+  }
+};
+
+// Reviews: Check if booking can be reviewed
+export const checkReviewEligibility = async (bookingId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/reviews/booking/${bookingId}/eligible`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to check review eligibility'
+    );
+  }
+};
+
+// Reviews: Get reviews for a hotel
+export const getHotelReviews = async (hotelId: string): Promise<any> => {
+  try {
+    const response = await apiClient.get(`/reviews/hotel/${hotelId}`);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to fetch reviews'
+    );
+  }
+};
+
+// Reviews: Create review
+export const createReview = async (data: {
+  hotel: string;
+  booking: string;
+  rating: {
+    overall: number;
+    cleanliness?: number;
+    service?: number;
+    value?: number;
+    location?: number;
+  };
+  comment: string;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.post('/reviews', data);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to create review'
+    );
+  }
+};
+
+// Reviews: Update review
+export const updateReview = async (reviewId: string, data: {
+  rating?: {
+    overall?: number;
+    cleanliness?: number;
+    service?: number;
+    value?: number;
+    location?: number;
+  };
+  comment?: string;
+}): Promise<any> => {
+  try {
+    const response = await apiClient.put(`/reviews/${reviewId}`, data);
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to update review'
     );
   }
 };

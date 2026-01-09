@@ -7,6 +7,9 @@ import { getMyBookings, cancelBooking } from '@/lib/api';
 import { Booking, BookingStatus } from '@/types/booking';
 import { Calendar, MapPin, Users, DollarSign, X, Eye, AlertCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
+import { Star, MessageSquare } from 'lucide-react';
+import ReviewForm from '@/components/booking/ReviewForm';
+import { checkReviewEligibility } from '@/lib/api';
 
 // Status badge styling
 const getStatusBadge = (status: BookingStatus) => {
@@ -45,7 +48,7 @@ const calculateNights = (checkIn: string, checkOut: string): number => {
   return diffDays;
 };
 
-interface BookingWithDetails extends Omit<Booking, 'hotel' | 'room'>  {
+interface BookingWithDetails extends Omit<Booking, 'hotel' | 'room'> {
   hotel?: {
     _id: string;
     name: string;
@@ -73,10 +76,24 @@ export default function MyBookingsPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<BookingWithDetails | null>(null);
   const [cancelReason, setCancelReason] = useState('');
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [selectedBookingForReview, setSelectedBookingForReview] = useState<BookingWithDetails | null>(null);
+  const [reviewEligibility, setReviewEligibility] = useState<Record<string, any>>({});
 
   useEffect(() => {
     fetchBookings();
   }, []);
+
+  // Check eligibility for checked_out bookings
+  useEffect(() => {
+    bookings
+      .filter(b => b.status === 'checked_out')
+      .forEach(booking => {
+        if (!reviewEligibility[booking._id]) {
+          checkEligibility(booking._id);
+        }
+      });
+  }, [bookings]);
 
   const fetchBookings = async () => {
     try {
@@ -121,8 +138,8 @@ export default function MyBookingsPage() {
     }
   };
 
-  const filteredBookings = filter === 'all' 
-    ? bookings 
+  const filteredBookings = filter === 'all'
+    ? bookings
     : bookings.filter(booking => booking.status === filter);
 
   const statusCounts = {
@@ -155,6 +172,34 @@ export default function MyBookingsPage() {
       </CustomerLayout>
     );
   }
+  const checkEligibility = async (bookingId: string) => {
+    try {
+      const response = await checkReviewEligibility(bookingId);
+      setReviewEligibility(prev => ({
+        ...prev,
+        [bookingId]: response.data,
+      }));
+    } catch (err) {
+      // Silently fail - just don't show review button
+    }
+  };
+
+
+  const handleReviewClick = (booking: BookingWithDetails) => {
+    setSelectedBookingForReview(booking);
+    setShowReviewForm(true);
+  };
+
+  const handleReviewSuccess = () => {
+    setShowReviewForm(false);
+    setSelectedBookingForReview(null);
+    // Refresh eligibility
+    if (selectedBookingForReview) {
+      checkEligibility(selectedBookingForReview._id);
+    }
+    fetchBookings();
+  };
+
 
   return (
     <CustomerLayout>
@@ -171,17 +216,15 @@ export default function MyBookingsPage() {
             <button
               key={status}
               onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === status
-                  ? 'bg-emerald text-white'
-                  : 'bg-ivory-light text-charcoal hover:bg-gray-100'
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filter === status
+                ? 'bg-emerald text-white'
+                : 'bg-ivory-light text-charcoal hover:bg-gray-100'
+                }`}
             >
               {status === 'all' ? 'All' : status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
               {statusCounts[status] > 0 && (
-                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${
-                  filter === status ? 'bg-white/20' : 'bg-emerald/10 text-emerald'
-                }`}>
+                <span className={`ml-2 px-2 py-0.5 rounded-full text-xs ${filter === status ? 'bg-white/20' : 'bg-emerald/10 text-emerald'
+                  }`}>
                   {statusCounts[status]}
                 </span>
               )}
@@ -195,7 +238,7 @@ export default function MyBookingsPage() {
             <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-charcoal mb-2">No bookings found</h3>
             <p className="text-charcoal-light mb-6">
-              {filter === 'all' 
+              {filter === 'all'
                 ? "You don't have any bookings yet. Start exploring hotels!"
                 : `No ${filter.replace('_', ' ')} bookings found.`}
             </p>
@@ -309,17 +352,47 @@ export default function MyBookingsPage() {
                           <Eye className="w-4 h-4 mr-2" />
                           View Details
                         </Button>
-                        {booking.status !== 'cancelled' && 
-                         booking.status !== 'checked_out' && (
-                          <Button
-                            variant="outline"
-                            onClick={() => handleCancelClick(booking)}
-                            className="flex items-center text-red-600 border-red-300 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4 mr-2" />
-                            Cancel
-                          </Button>
+                        {booking.status === 'checked_out' && (
+                          (() => {
+                            const eligibility = reviewEligibility[booking._id];
+                            if (eligibility?.hasReview) {
+                              return (
+                                <Button
+                                  variant="outline"
+                                  disabled
+                                  className="flex items-center text-gray-400"
+                                >
+                                  <Star className="w-4 h-4 mr-2" />
+                                  Review Submitted
+                                </Button>
+                              );
+                            }
+                            if (eligibility?.eligible) {
+                              return (
+                                <Button
+                                  variant="outline"
+                                  onClick={() => handleReviewClick(booking)}
+                                  className="flex items-center text-emerald border-emerald hover:bg-emerald/10"
+                                >
+                                  <Star className="w-4 h-4 mr-2" />
+                                  Write Review
+                                </Button>
+                              );
+                            }
+                            return null;
+                          })()
                         )}
+                        {booking.status !== 'cancelled' &&
+                          booking.status !== 'checked_out' && (
+                            <Button
+                              variant="outline"
+                              onClick={() => handleCancelClick(booking)}
+                              className="flex items-center text-red-600 border-red-300 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4 mr-2" />
+                              Cancel
+                            </Button>
+                          )}
                       </div>
                     </div>
                   </div>
@@ -374,6 +447,28 @@ export default function MyBookingsPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Review Form Modal */}
+        {showReviewForm && selectedBookingForReview && (
+          <ReviewForm
+            booking={{
+              _id: selectedBookingForReview._id,
+              hotel: {
+                _id: typeof selectedBookingForReview.hotel === 'object'
+                  ? selectedBookingForReview.hotel._id
+                  : '',
+                name: typeof selectedBookingForReview.hotel === 'object'
+                  ? selectedBookingForReview.hotel.name
+                  : 'Hotel',
+              },
+            }}
+            onClose={() => {
+              setShowReviewForm(false);
+              setSelectedBookingForReview(null);
+            }}
+            onSuccess={handleReviewSuccess}
+          />
         )}
       </div>
     </CustomerLayout>

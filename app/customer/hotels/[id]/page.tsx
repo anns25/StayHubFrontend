@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import CustomerLayout from '@/components/shared/CustomerLayout';
-import { getHotelById, getRoomsByHotel } from '@/lib/api';
+import { getHotelById, getRoomsByHotel, getHotelReviews } from '@/lib/api';
 import { Star, MapPin, Wifi, Car, Utensils, Dumbbell, Waves, Coffee, Calendar, Users, Shield, Clock, CheckCircle } from 'lucide-react';
 import BookingForm from '@/components/booking/BookingForm';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -88,6 +88,10 @@ export default function HotelDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
+  const reviewsSectionRef = useRef<HTMLDivElement>(null);
+
   const dispatch = useAppDispatch();
   const {
     selectedDateRange,
@@ -100,6 +104,7 @@ export default function HotelDetailPage() {
 
   const checkIn = selectedDateRange?.checkIn || searchParams.get('checkIn') || '';
   const checkOut = selectedDateRange?.checkOut || searchParams.get('checkOut') || '';
+
 
   useEffect(() => {
     const fetchHotelData = async () => {
@@ -114,6 +119,7 @@ export default function HotelDetailPage() {
 
         setHotel(hotelResponse.data);
         setRooms(roomsResponse.data || []);
+        console.log(hotelResponse.data);
       } catch (error: any) {
         console.error('Error fetching hotel data:', error);
         setError(error.message || 'Failed to load hotel details');
@@ -126,6 +132,32 @@ export default function HotelDetailPage() {
       fetchHotelData();
     }
   }, [hotelId]);
+
+  // Fetch reviews
+  useEffect(() => {
+    const fetchReviews = async () => {
+      if (!hotelId) return;
+      try {
+        setReviewsLoading(true);
+        const response = await getHotelReviews(hotelId);
+        setReviews(response.data || []);
+      } catch (error: any) {
+        console.error('Error fetching reviews:', error);
+        // Don't show error, just leave reviews empty
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    if (hotelId) {
+      fetchReviews();
+    }
+  }, [hotelId]);
+
+  // Scroll to reviews section
+  const scrollToReviews = () => {
+    reviewsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // Update handleBookRoom
   const handleBookRoom = (room: Room) => {
@@ -188,7 +220,10 @@ export default function HotelDetailPage() {
                     {hotel.location.address}, {hotel.location.city}, {hotel.location.state}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div
+                  className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={scrollToReviews}
+                >
                   <Star className="w-5 h-5 fill-gold text-gold" />
                   <span className="font-semibold text-charcoal">{hotel.rating.average}</span>
                   <span className="text-sm">({hotel.rating.count} reviews)</span>
@@ -207,7 +242,7 @@ export default function HotelDetailPage() {
         <div className="relative">
           {/* Main Image Gallery */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3 h-[400px] md:h-[500px]">
-            <div className="md:col-span-2 md:row-span-2">
+            <div className="md:col-span-2 md:row-span-2 overflow-hidden rouned-xl">
               <img
                 src={mainImage}
                 alt={hotel.name}
@@ -217,7 +252,7 @@ export default function HotelDetailPage() {
             {otherImages.slice(1, 5).map((img, index) => (
               <div
                 key={index}
-                className="relative cursor-pointer group"
+                className="relative cursor-pointer group overflow-hidden rounded-xl"
                 onClick={() => setSelectedImageIndex(index + 1)}
               >
                 <img
@@ -298,6 +333,175 @@ export default function HotelDetailPage() {
               </section>
             )}
 
+            {/* Reviews Section - Add this after Policies section */}
+            <section
+              id="reviews"
+              ref={reviewsSectionRef}
+              className="bg-ivory-light rounded-xl p-6 shadow-card"
+            >
+              <h2 className="text-2xl font-bold text-charcoal mb-6 flex items-center">
+                <Star className="w-6 h-6 mr-2 text-emerald" />
+                Reviews ({reviews.length})
+              </h2>
+
+              {reviewsLoading ? (
+                <div className="text-center py-8">
+                  <div className="text-charcoal-light">Loading reviews...</div>
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <Star className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-charcoal-light">No reviews yet. Be the first to review this hotel!</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="bg-white rounded-lg p-6 border border-gray-200">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center space-x-4">
+                          <div className="w-12 h-12 rounded-full bg-emerald/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+                            {review.customer?.profileImage ? (
+                              <img
+                                src={review.customer.profileImage}
+                                alt={review.customer.name}
+                                className="w-12 h-12 rounded-full object-cover"
+                              />
+                            ) : (
+                              <span className="text-emerald font-semibold text-lg">
+                                {review.customer?.name?.charAt(0).toUpperCase() || 'U'}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-charcoal">
+                              {review.customer?.name || 'Anonymous'}
+                            </h4>
+                            <div className="flex items-center space-x-1 mt-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <Star
+                                  key={star}
+                                  className={`w-4 h-4 ${star <= review.rating.overall
+                                      ? 'fill-gold text-gold'
+                                      : 'text-gray-300'
+                                    }`}
+                                />
+                              ))}
+                              <span className="ml-2 text-sm text-charcoal-light">
+                                {review.rating.overall}/5
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-charcoal-light">
+                          {new Date(review.createdAt).toLocaleDateString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+
+                      <p className="text-charcoal-light leading-relaxed mb-4">{review.comment}</p>
+
+                      {/* Additional rating breakdown if available */}
+                      {(review.rating.cleanliness || review.rating.service || review.rating.value || review.rating.location) && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 border-t border-gray-100">
+                          {review.rating.cleanliness && (
+                            <div>
+                              <p className="text-xs text-charcoal-light mb-1">Cleanliness</p>
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3 h-3 ${star <= review.rating.cleanliness
+                                        ? 'fill-gold text-gold'
+                                        : 'text-gray-300'
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {review.rating.service && (
+                            <div>
+                              <p className="text-xs text-charcoal-light mb-1">Service</p>
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3 h-3 ${star <= review.rating.service
+                                        ? 'fill-gold text-gold'
+                                        : 'text-gray-300'
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {review.rating.value && (
+                            <div>
+                              <p className="text-xs text-charcoal-light mb-1">Value</p>
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3 h-3 ${star <= review.rating.value
+                                        ? 'fill-gold text-gold'
+                                        : 'text-gray-300'
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {review.rating.location && (
+                            <div>
+                              <p className="text-xs text-charcoal-light mb-1">Location</p>
+                              <div className="flex items-center space-x-1">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                  <Star
+                                    key={star}
+                                    className={`w-3 h-3 ${star <= review.rating.location
+                                        ? 'fill-gold text-gold'
+                                        : 'text-gray-300'
+                                      }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Owner response if available */}
+                      {review.ownerResponse?.text && (
+                        <div className="mt-4 pt-4 border-t border-gray-200 bg-emerald/5 rounded-lg p-4">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-sm font-semibold text-emerald">Hotel Response</span>
+                            {review.ownerResponse.generatedByAI && (
+                              <span className="px-2 py-0.5 bg-emerald/10 text-emerald rounded-full text-xs">
+                                AI Generated
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-charcoal-light">{review.ownerResponse.text}</p>
+                          {review.ownerResponse.respondedAt && (
+                            <p className="text-xs text-charcoal-light mt-2">
+                              {new Date(review.ownerResponse.respondedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric',
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
             {/* Available Rooms */}
             <section>
               <h2 className="text-2xl font-bold text-charcoal mb-6">Available Rooms</h2>
@@ -314,7 +518,7 @@ export default function HotelDetailPage() {
                     >
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-0">
                         {/* Room Image */}
-                        <div className="md:col-span-1">
+                        <div className="md:col-span-1 overflow-hidden">
                           {room.images && room.images.length > 0 ? (
                             <img
                               src={room.images[0].url}
