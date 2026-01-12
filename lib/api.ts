@@ -670,3 +670,29 @@ export const updateReview = async (reviewId: string, data: {
     );
   }
 };
+
+// Hotel Owner: Get dashboard statistics
+export const getHotelOwnerDashboardStats = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/hotels/dashboard/stats');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to fetch dashboard statistics'
+    );
+  }
+};
+
+// Admin: Get platform analytics
+export const getPlatformAnalytics = async (): Promise<any> => {
+  try {
+    const response = await apiClient.get('/admin/analytics');
+    return response.data;
+  } catch (error: any) {
+    throw new Error(
+      error.response?.data?.message ||
+      'Failed to fetch platform analytics'
+    );
+  }
+};

@@ -7,7 +7,7 @@ import HotelListTable from '@/components/ui/HotelListTable';
 import { Calendar, Percent, DollarSign } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useEffect, useState } from 'react';
-import { getMyHotels } from '@/lib/api';
+import { getHotelOwnerDashboardStats, getMyHotels } from '@/lib/api';
 import { setActiveHotel } from '@/store/slices/activeHotelSlice';
 import { useRouter } from 'next/navigation';
 
@@ -27,8 +27,22 @@ interface Hotel {
   createdAt: string;
 }
 
+interface DashboardStats {
+  bookingsToday: number;
+  bookingsTodayChange: number;
+  occupancyRate: number;
+  occupancyRateChange: number;
+  monthlyRevenue: number;
+  monthlyRevenueChange: number;
+  hotels: Array<{
+    id: string;
+    roomCount: number;
+    revenue: number;
+  }>;
+}
+
 // Transform backend hotel to HotelListTable format
-const transformHotelForTable = (hotel: Hotel) => {
+const transformHotelForTable = (hotel: Hotel, stats?: DashboardStats['hotels']) => {
   const locationString = `${hotel.location.city}, ${hotel.location.state}`;
 
   // Determine status based on hotel properties
@@ -39,13 +53,16 @@ const transformHotelForTable = (hotel: Hotel) => {
     status = 'Maintenance'; // Pending approval
   }
 
+  // Get hotel stats
+  const hotelStats = stats?.find(s => s.id === hotel._id);
+
   return {
     id: hotel._id,
     name: hotel.name,
     location: locationString,
     status,
-    rooms: 0, // TODO: Get actual room count from API
-    revenue: '$0', // TODO: Get actual revenue from API
+    rooms: hotelStats?.roomCount || 0, // TODO: Get actual room count from API
+    revenue: hotelStats?.revenue ? `$${hotelStats.revenue.toLocaleString()}` : '$0',
   };
 };
 
@@ -54,6 +71,7 @@ export default function HotelOwnerDashboard() {
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +94,7 @@ export default function HotelOwnerDashboard() {
   ];
 
   useEffect(() => {
-    fetchHotels();
+    fetchDashboardData();
   }, []);
 
   // Auto-set first hotel as active if none selected
@@ -98,19 +116,24 @@ export default function HotelOwnerDashboard() {
     }
   }, [hotels, activeHotelId, dispatch]);
 
-  const fetchHotels = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await getMyHotels();
-      setHotels(response.data || []);
+      const [hotelsResponse, statsResponse] = await Promise.all([
+        getMyHotels(),
+        getHotelOwnerDashboardStats(),
+      ]);
+      setHotels(hotelsResponse.data || []);
+      setStats(statsResponse.data || null);
     } catch (error: any) {
-      console.error('Error fetching hotels:', error);
-      setError(error.message || 'Failed to fetch hotels');
+      console.error('Error fetching dashboard data:', error);
+      setError(error.message || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
     }
   };
+
 
   const handleEdit = (hotel: { id: string }) => {
     router.push(`/hotel-owner/hotels?edit=${hotel.id}`);
@@ -140,11 +163,40 @@ export default function HotelOwnerDashboard() {
     router.push(`/hotel-owner/hotels`);
   };
 
-  const transformedHotels = hotels.map(transformHotelForTable);
+  const transformedHotels = hotels.map(hotel => transformHotelForTable(hotel, stats?.hotels));
 
-  // Display active hotel info if available
-  const activeHotelInfo = activeHotel?.hotel;
+  // Format trend value
+  const formatTrend = (value: number) => {
+    const sign = value >= 0 ? '↑' : '↓';
+    const absValue = Math.abs(value).toFixed(1);
+    return `${sign} ${absValue}%`;
+  };
 
+  if (loading) {
+    return (
+      <HotelOwnerLayout activeSidebarItem="Dashboard" onAddHotel={() => console.log('Add Hotel')}>
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald"></div>
+        </div>
+      </HotelOwnerLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <HotelOwnerLayout activeSidebarItem="Dashboard" onAddHotel={() => console.log('Add Hotel')}>
+        <div className="text-center py-12">
+          <p className="text-red-500 mb-4">{error}</p>
+          <button
+            onClick={fetchDashboardData}
+            className="px-4 py-2 bg-emerald text-white rounded-lg hover:bg-emerald-dark"
+          >
+            Try Again
+          </button>
+        </div>
+      </HotelOwnerLayout>
+    );
+  }
   return (
     <HotelOwnerLayout activeSidebarItem="Dashboard" onAddHotel={() => console.log('Add Hotel')}>
       <div className="space-y-6">
@@ -162,23 +214,32 @@ export default function HotelOwnerDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           <KPICard
             icon={Calendar}
-            value="47"
+            value={stats?.bookingsToday?.toString() || '0'}
             label="Bookings Today"
-            trend={{ value: '↑ 12%', isPositive: true }}
+            trend={{
+              value: stats ? formatTrend(stats.bookingsTodayChange) : '0%',
+              isPositive: (stats?.bookingsTodayChange || 0) >= 0,
+            }}
             iconColor="blue"
           />
           <KPICard
             icon={Percent}
-            value="78.5%"
+            value={stats ? `${stats.occupancyRate.toFixed(1)}%` : '0%'}
             label="Occupancy Rate"
-            trend={{ value: '↑ 8%', isPositive: true }}
+            trend={{
+              value: stats ? formatTrend(stats.occupancyRateChange) : '0%',
+              isPositive: (stats?.occupancyRateChange || 0) >= 0,
+            }}
             iconColor="purple"
           />
           <KPICard
             icon={DollarSign}
-            value="$124,580"
+            value={stats ? `$${stats.monthlyRevenue.toLocaleString()}` : '$0'}
             label="Monthly Revenue"
-            trend={{ value: '↑ 15%', isPositive: true }}
+            trend={{
+              value: stats ? formatTrend(stats.monthlyRevenueChange) : '0%',
+              isPositive: (stats?.monthlyRevenueChange || 0) >= 0,
+            }}
             iconColor="green"
           />
         </div>
@@ -189,9 +250,9 @@ export default function HotelOwnerDashboard() {
         {/* Hotel List */}
         <HotelListTable
           hotels={transformedHotels}
-          onEdit={(hotel) => console.log('Edit:', hotel)}
-          onView={(hotel) => console.log('View:', hotel)}
-          onDelete={(hotel) => console.log('Delete:', hotel)}
+          onEdit={handleEdit}
+          onView={handleView}
+          onDelete={handleDelete}
         />
       </div>
     </HotelOwnerLayout>
